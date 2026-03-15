@@ -72,11 +72,52 @@ jobs:
             exit 0
           fi
           echo "Notarizing: $DMG"
-          xcrun notarytool submit "$DMG" \
+
+          SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --output-format json 2>&1)
+          echo "Submit output: $SUBMIT_OUTPUT"
+
+          SUBMISSION_ID=$(echo "$SUBMIT_OUTPUT" | python3 -c \
+            "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || echo "")
+
+          if [ -z "$SUBMISSION_ID" ]; then
+            echo "Could not get submission ID, trying --wait method"
+            xcrun notarytool submit "$DMG" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_ID_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --wait --timeout 20m
+          else
+            echo "Submission ID: $SUBMISSION_ID"
+            echo "Polling for notarization status..."
+
+            for i in $(seq 1 40); do
+              sleep 30
+              STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_ID_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" \
+                --output-format json 2>/dev/null | python3 -c \
+                "import sys,json; print(json.load(sys.stdin).get('status',''))" 2>/dev/null || echo "Unknown")
+              echo "Attempt $i/40 — Status: $STATUS"
+
+              if [ "$STATUS" = "Accepted" ]; then
+                echo "Notarization accepted!"
+                break
+              elif [ "$STATUS" = "Invalid" ] || [ "$STATUS" = "Rejected" ]; then
+                echo "Notarization failed with status: $STATUS"
+                xcrun notarytool log "$SUBMISSION_ID" \
+                  --apple-id "$APPLE_ID" \
+                  --password "$APPLE_ID_PASSWORD" \
+                  --team-id "$APPLE_TEAM_ID"
+                exit 1
+              fi
+            done
+          fi
+
           xcrun stapler staple "$DMG"
           echo "Notarization complete"
 
