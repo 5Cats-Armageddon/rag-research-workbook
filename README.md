@@ -1,4 +1,4 @@
-# RAG Research Workbook v1.2.1
+# RAG Research Workbook v1.2.2
 
 A native macOS and Windows research assistant. Organize sources into projects, chat with strict source grounding, generate podcasts from your sources, and sync to cloud storage. Runs entirely free with local Ollama models.
 
