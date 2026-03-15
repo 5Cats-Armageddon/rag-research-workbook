@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NotebookAI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;--surface3:#e4e2db;
+  --border:#e2e0d8;--border2:#ccc9be;
+  --text:#1a1917;--text2:#6b6860;--text3:#9e9b91;
+  --accent:#2d5be3;--accent-bg:#eef2fd;--accent-border:#c5d0f7;
+  --green:#059669;--green-bg:#d1fae5;--green-border:#a7f3d0;
+  --warn:#92400e;--warn-bg:#fef3c7;--warn-border:#fcd34d;
+  --danger:#991b1b;--danger-bg:#fee2e2;--danger-border:#fca5a5;
+  --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
+  --r:8px;--rl:12px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --sh-lg:0 4px 20px rgba(0,0,0,.13);
+  --titlebar:28px;
+}
+body.dark{
+  --bg:#1a1917;--surface:#242320;--surface2:#2e2c29;--surface3:#383532;
+  --border:#3a3835;--border2:#4a4845;
+  --text:#e8e6e0;--text2:#a09d96;--text3:#6b6860;
+  --accent:#5b7ef5;--accent-bg:#1e2a4a;--accent-border:#2d3f6e;
+  --green:#34d399;--green-bg:#0d2b20;--green-border:#065f46;
+  --warn:#fbbf24;--warn-bg:#2d2410;--warn-border:#78510a;
+  --danger:#f87171;--danger-bg:#2d1010;--danger-border:#7b2020;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:14px;line-height:1.5;transition:background .2s,color .2s}
+
+/* Title bar */
+.titlebar{height:var(--titlebar);-webkit-app-region:drag;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding-left:80px;gap:8px;flex-shrink:0}
+.titlebar .app-name{font-size:12px;font-weight:500;color:var(--text3)}
+.titlebar .sync-area{margin-left:auto;padding-right:12px;display:flex;align-items:center;gap:10px;-webkit-app-region:no-drag}
+.sync-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--border2)}
+.sync-dot.ok{background:#10b981}.sync-dot.syncing{background:#f59e0b;animation:pulse .8s ease-in-out infinite}.sync-dot.err{background:#ef4444}
+.ai-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;border:1px solid}
+.ai-badge.anthropic{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.ai-badge.ollama{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.app{display:flex;height:calc(100vh - var(--titlebar))}
+
+/* Projects rail */
+.rail{width:210px;min-width:210px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.rail-top{padding:12px 12px 8px;border-bottom:1px solid var(--border)}
+.new-proj-btn{width:100%;padding:7px 10px;border-radius:var(--r);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .12s}
+.new-proj-btn:hover{background:var(--surface2);border-style:solid;color:var(--text)}
+.projects-list{flex:1;overflow-y:auto;padding:6px}
+.proj-item{padding:8px 10px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all .12s;margin-bottom:2px;display:flex;align-items:center;gap:8px;position:relative}
+.proj-item:hover{background:var(--surface2);border-color:var(--border)}
+.proj-item.active{background:var(--accent-bg);border-color:var(--accent-border)}
+.proj-emoji{font-size:13px;flex-shrink:0;width:18px;text-align:center}
+.proj-info{flex:1;min-width:0}
+.proj-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-meta{font-size:10px;color:var(--text3);margin-top:1px}
+.proj-menu-btn{width:16px;height:16px;border-radius:3px;border:none;background:transparent;color:var(--text3);font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;line-height:1}
+.proj-item:hover .proj-menu-btn,.proj-item.active .proj-menu-btn{display:flex}
+.proj-menu-btn:hover{background:var(--surface3);color:var(--text)}
+.proj-dropdown{position:absolute;right:6px;top:30px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh-lg);z-index:50;min-width:130px;overflow:hidden;display:none}
+.proj-dropdown.open{display:block}
+.proj-dropdown button{display:block;width:100%;padding:7px 12px;text-align:left;border:none;background:transparent;font-family:var(--font);font-size:12px;color:var(--text2);cursor:pointer;transition:background .1s}
+.proj-dropdown button:hover{background:var(--surface2);color:var(--text)}
+.proj-dropdown button.danger{color:var(--danger)}.proj-dropdown button.danger:hover{background:var(--danger-bg)}
+.rail-bottom{padding:8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
+.rail-btn{width:100%;padding:6px 8px;border-radius:var(--r);border:none;background:transparent;font-family:var(--font);font-size:11px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s}
+.rail-btn:hover{background:var(--surface2);color:var(--text)}
+.rail-btn svg{width:12px;height:12px;stroke:currentColor;flex-shrink:0}
+
+/* Sidebar */
+.sidebar{width:230px;min-width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:12px 12px 8px;border-bottom:1px solid var(--border)}
+.sb-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.sb-proj-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sources-scroll{flex:1;overflow-y:auto;padding:6px}
+.source-item{padding:7px 8px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all .12s;display:flex;align-items:flex-start;gap:7px;margin-bottom:2px}
+.source-item:hover{background:var(--surface2);border-color:var(--border)}
+.source-item.active{background:var(--accent-bg);border-color:var(--accent-border)}
+.src-icon{width:22px;height:22px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px}
+.src-info{flex:1;min-width:0}
+.src-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-preview{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.src-toggle{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;margin-top:3px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center}
+.src-toggle.on{background:var(--accent);border-color:var(--accent)}
+.src-toggle.on::after{content:'';width:5px;height:5px;background:white;border-radius:50%}
+.add-src-btn{margin:6px;padding:7px;border-radius:var(--r);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .12s}
+.add-src-btn:hover{background:var(--surface2);border-style:solid;color:var(--text)}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.chat-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px}
+.chat-title{font-size:13px;font-weight:500}
+.chat-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.hdr-btn{padding:4px 8px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.hdr-btn:hover{background:var(--surface2);color:var(--text)}
+.hdr-btn svg{width:10px;height:10px;stroke:currentColor}
+.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:.6}
+.empty-state h3{font-size:15px;font-weight:500;color:var(--text);margin-bottom:5px}
+.empty-state p{font-size:12px;color:var(--text3);max-width:250px;line-height:1.6}
+.proj-home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+.proj-home-emoji{font-size:44px;margin-bottom:14px}
+.proj-home h2{font-size:19px;font-weight:500;margin-bottom:6px}
+.proj-home p{font-size:13px;color:var(--text2);max-width:280px;line-height:1.6;margin-bottom:18px}
+.message{display:flex;gap:8px}.message.user{flex-direction:row-reverse}
+.avatar{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;margin-top:2px}
+.avatar.ai{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.avatar.ai.ollama{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.avatar.user{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.bubble{max-width:72%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.65}
+.message.user .bubble{background:var(--accent);color:white;border-radius:12px 3px 12px 12px}
+.message.ai .bubble{background:var(--surface);border:1px solid var(--border);border-radius:3px 12px 12px 12px;box-shadow:var(--sh)}
+.bubble p{margin:0 0 6px}.bubble p:last-child{margin-bottom:0}
+.bubble strong{font-weight:500}
+.bubble ul{padding-left:15px;margin:3px 0}.bubble li{margin-bottom:2px}
+.cite{display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:1px 5px;border-radius:3px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);vertical-align:middle;margin:0 1px;font-weight:500}
+.bubble.oos{border-color:var(--warn-border);background:var(--warn-bg)}
+.oos-label{font-size:10px;color:var(--warn);display:flex;align-items:center;gap:3px;margin-bottom:4px;font-weight:500}
+.thinking{display:flex;gap:4px;align-items:center}
+.thinking span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:bounce 1.3s ease-in-out infinite}
+.thinking span:nth-child(2){animation-delay:.18s}.thinking span:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,80%,100%{transform:scale(.75);opacity:.35}40%{transform:scale(1.05);opacity:1}}
+.input-wrap{padding:12px 16px;background:var(--surface);border-top:1px solid var(--border)}
+.quick-row{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.quick{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
+.quick:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.input-row{display:flex;gap:7px;align-items:flex-end}
+textarea#chat-input{flex:1;border:1px solid var(--border2);border-radius:var(--rl);background:var(--surface2);padding:8px 12px;font-size:13px;color:var(--text);resize:none;min-height:38px;max-height:120px;font-family:var(--font);line-height:1.5;outline:none;transition:border-color .12s,background .12s}
+textarea#chat-input:focus{border-color:var(--accent);background:var(--surface)}
+textarea#chat-input::placeholder{color:var(--text3)}
+.send{width:34px;height:34px;border-radius:9px;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+.send:hover{background:#1e47cc}.send:disabled{background:var(--border);cursor:not-allowed}
+.send svg{width:14px;height:14px;stroke:white}
+
+/* Source panel */
+.panel{width:290px;min-width:290px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;overflow:hidden}
+.panel.open{transform:translateX(0)}
+.panel-hdr{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:7px}
+.panel-hdr h3{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.panel-url{font-size:10px;color:var(--text3);padding:4px 12px;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-body{flex:1;overflow-y:auto;padding:12px;font-size:11px;line-height:1.75;color:var(--text2);white-space:pre-wrap;font-family:var(--mono)}
+.x-btn{width:20px;height:20px;border-radius:4px;border:none;background:transparent;cursor:pointer;color:var(--text3);font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .1s;flex-shrink:0}
+.x-btn:hover{background:var(--surface2);color:var(--text)}
+
+/* Modals */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .18s;backdrop-filter:blur(3px)}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border);box-shadow:var(--sh-lg);padding:20px;width:460px;max-width:92vw;max-height:88vh;overflow-y:auto;transform:translateY(10px);transition:transform .18s}
+.overlay.open .modal{transform:translateY(0)}
+.modal h3{font-size:14px;font-weight:500;margin-bottom:14px}
+.modal-section{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.modal-section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.section-title{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.tabs{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.tab{flex:1;padding:6px;font-size:11px;text-align:center;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all .12s;font-family:var(--font)}
+.tab.on{background:var(--surface2);color:var(--text);font-weight:500}
+label.lbl{font-size:11px;color:var(--text2);display:block;margin-bottom:3px}
+input.field,textarea.field,select.field{border:1px solid var(--border2);border-radius:var(--r);padding:7px 10px;width:100%;font-size:12px;font-family:var(--font);color:var(--text);background:var(--surface2);outline:none;margin-bottom:10px;transition:border-color .12s,background .12s}
+input.field:focus,textarea.field:focus,select.field:focus{border-color:var(--accent);background:var(--surface)}
+textarea.field{resize:vertical}
+select.field{cursor:pointer}
+.url-row{display:flex;gap:6px;margin-bottom:10px}
+.url-row input.field{margin-bottom:0;flex:1}
+.status-box{font-size:11px;padding:6px 10px;border-radius:var(--r);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.status-box.loading{background:var(--surface2);color:var(--text2)}
+.status-box.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.status-box.err{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.spinner{width:11px;height:11px;border:1.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;color:var(--text3);cursor:pointer;transition:all .12s;margin-bottom:10px;font-size:12px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:var(--accent-bg);color:var(--text2)}
+.drop-zone .di{font-size:22px;margin-bottom:4px}
+.modal-foot{display:flex;gap:6px;justify-content:flex-end;margin-top:16px}
+.btn{padding:6px 13px;border-radius:var(--r);font-family:var(--font);font-size:12px;cursor:pointer;transition:all .12s}
+.btn-ghost{border:1px solid var(--border);background:transparent;color:var(--text2)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-solid{border:none;background:var(--accent);color:white;font-weight:500}
+.btn-solid:hover{background:#1e47cc}
+.btn-solid:disabled{background:var(--border2);cursor:not-allowed;opacity:.6}
+.btn-green{border:none;background:var(--green);color:white;font-weight:500}
+.btn-green:hover{filter:brightness(1.1)}
+.btn-green:disabled{opacity:.5;cursor:not-allowed}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.btn-danger:hover{background:#fecaca}
+.path-display{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 8px;margin-top:-6px;margin-bottom:10px;word-break:break-all;line-height:1.5}
+.setting-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px}
+.setting-label{font-size:12px;color:var(--text)}
+.setting-desc{font-size:10px;color:var(--text3);margin-top:1px}
+.toggle-switch{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--border2);border-radius:20px;transition:background .2s}
+.toggle-switch input:checked+.toggle-track{background:var(--accent)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:white;border-radius:50%;transition:transform .2s;pointer-events:none}
+.toggle-switch input:checked~.toggle-thumb{transform:translateX(16px)}
+.kbd{display:inline-block;font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);margin-left:4px}
+.err-bubble{background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:var(--r);padding:8px 11px;font-size:12px;color:var(--danger)}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:10px}
+.emoji-opt{font-size:16px;padding:5px;border-radius:5px;cursor:pointer;text-align:center;border:1px solid transparent;transition:all .1s}
+.emoji-opt:hover{background:var(--surface2);border-color:var(--border)}
+.emoji-opt.selected{background:var(--accent-bg);border-color:var(--accent-border)}
+.confirm-modal{width:340px}
+.confirm-msg{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px}
+
+/* Provider toggle pill */
+.provider-toggle{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.provider-btn{flex:1;padding:8px 10px;border:none;background:transparent;font-family:var(--font);font-size:12px;color:var(--text2);cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;gap:2px}
+.provider-btn .pb-icon{font-size:16px}
+.provider-btn .pb-label{font-size:11px;font-weight:500}
+.provider-btn .pb-sub{font-size:9px;color:var(--text3)}
+.provider-btn.active.anthropic{background:var(--accent-bg);color:var(--accent)}
+.provider-btn.active.ollama{background:var(--green-bg);color:var(--green)}
+.provider-btn.active .pb-sub{color:inherit;opacity:.7}
+
+/* Update log terminal */
+.update-log{font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;height:220px;overflow-y:auto;white-space:pre-wrap;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.update-log .ok{color:var(--green)}.update-log .err{color:var(--danger)}
+
+/* Ollama status */
+.ollama-status{font-size:11px;padding:5px 9px;border-radius:var(--r);display:inline-flex;align-items:center;gap:5px;margin-bottom:8px}
+.ollama-status.ok{background:var(--green-bg);color:var(--green)}
+.ollama-status.err{background:var(--danger-bg);color:var(--danger)}
+.ollama-status.checking{background:var(--surface2);color:var(--text3)}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <span class="app-name">NotebookAI</span>
+  <div class="sync-area">
+    <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">—</span></div>
+    <div class="ai-badge" id="ai-badge">—</div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- Projects rail -->
+  <div class="rail">
+    <div class="rail-top">
+      <button class="new-proj-btn" onclick="openNewProject()" title="New Project (⌘N)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New project
+      </button>
+    </div>
+    <div class="projects-list" id="projects-list"></div>
+    <div class="rail-bottom">
+      <button class="rail-btn" onclick="triggerSync()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>Sync now
+      </button>
+      <button class="rail-btn" onclick="openUpdater()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="16 17 21 12 16 7"/><polyline points="8 7 3 12 8 17"/></svg>Check for update
+      </button>
+      <button class="rail-btn" onclick="openSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- Sources sidebar -->
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="sb-label">Sources</div>
+      <div class="sb-proj-name" id="sb-proj-name">—</div>
+    </div>
+    <div class="sources-scroll" id="sources-list"></div>
+    <button class="add-src-btn" onclick="openAddSource()" title="Add Source (⌘⇧A)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add source
+    </button>
+  </div>
+
+  <!-- Chat -->
+  <div class="main">
+    <div class="chat-header">
+      <div style="flex:1">
+        <div class="chat-title" id="chat-title">Select a project</div>
+        <div class="chat-sub" id="chat-sub">Choose or create a project to get started</div>
+      </div>
+      <button class="hdr-btn" onclick="exportChatMd()" id="export-btn" style="display:none" title="Export Chat (⌘⇧E)">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export
+      </button>
+      <button class="hdr-btn" onclick="clearChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>Clear
+      </button>
+    </div>
+    <div class="messages" id="messages">
+      <div class="proj-home">
+        <div class="proj-home-emoji">📚</div>
+        <h2>Welcome to NotebookAI</h2>
+        <p>Create a project to organise your sources and research conversations.</p>
+        <button class="btn btn-solid" onclick="openNewProject()">Create first project</button>
+      </div>
+    </div>
+    <div class="input-wrap" id="input-wrap" style="display:none">
+      <div class="quick-row" id="quick-row">
+        <button class="quick" onclick="sq('Summarize all my sources')">📄 Summarize</button>
+        <button class="quick" onclick="sq('What are the key themes across my sources?')">🔍 Key themes</button>
+        <button class="quick" onclick="sq('What questions do my sources raise?')">❓ Open questions</button>
+        <button class="quick" onclick="sq('Compare and contrast the main arguments')">⚖️ Compare</button>
+      </div>
+      <div class="input-row">
+        <textarea id="chat-input" placeholder="Ask anything about your sources… (Enter to send, Shift+Enter for new line)" rows="1" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+        <button class="send" id="send-btn" onclick="sendMsg()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Source viewer panel -->
+  <div class="panel" id="panel">
+    <div class="panel-hdr"><h3 id="panel-title">Source</h3><button class="x-btn" onclick="closePanel()">×</button></div>
+    <div id="panel-url" class="panel-url" style="display:none"></div>
+    <div class="panel-body" id="panel-body"></div>
+  </div>
+</div>
+
+<!-- ── Settings Modal ── -->
+<div class="overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div class="modal" style="width:500px">
+    <h3>⚙️ Settings</h3>
+
+    <div class="modal-section">
+      <div class="section-title">AI Provider</div>
+      <div class="provider-toggle">
+        <button class="provider-btn anthropic" id="pb-anthropic" onclick="selectProvider('anthropic')">
+          <span class="pb-icon">☁️</span>
+          <span class="pb-label">Anthropic</span>
+          <span class="pb-sub">Claude Sonnet 4 · Paid</span>
+        </button>
+        <button class="provider-btn ollama" id="pb-ollama" onclick="selectProvider('ollama')">
+          <span class="pb-icon">🦙</span>
+          <span class="pb-label">Ollama</span>
+          <span class="pb-sub">Local models · Free</span>
+        </button>
+      </div>
+
+      <!-- Anthropic fields -->
+      <div id="anthropic-fields">
+        <label class="lbl">Anthropic API key</label>
+        <input class="field" type="password" id="s-api-key" placeholder="sk-ant-…">
+        <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px">
+          Get your key at <a href="#" onclick="openExt('https://console.anthropic.com/settings/keys');return false" style="color:var(--accent)">console.anthropic.com</a> · Required for AI-assisted URL fetch and chat
+        </div>
+      </div>
+
+      <!-- Ollama fields -->
+      <div id="ollama-fields" style="display:none">
+        <div id="ollama-status" class="ollama-status checking">Checking Ollama…</div>
+        <label class="lbl">Ollama host</label>
+        <input class="field" type="text" id="s-ollama-host" placeholder="http://localhost:11434" oninput="debouncedCheckOllama()">
+        <label class="lbl">Model</label>
+        <select class="field" id="s-ollama-model"></select>
+        <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:4px">
+          Install Ollama at <a href="#" onclick="openExt('https://ollama.com');return false" style="color:var(--accent)">ollama.com</a> then run <code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px">ollama pull llama3</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Cloud sync</div>
+      <label class="lbl">Cloud service</label>
+      <select class="field" id="s-cloud" onchange="onCloudChange()">
+        <option value="local">Local only (no sync)</option>
+        <option value="icloud">iCloud Drive</option>
+        <option value="dropbox">Dropbox</option>
+        <option value="googledrive">Google Drive</option>
+        <option value="onedrive">OneDrive</option>
+        <option value="custom">Custom path…</option>
+      </select>
+      <div class="path-display" id="s-path-display">—</div>
+      <div id="custom-path-row" style="display:none">
+        <label class="lbl">Custom sync path</label>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input class="field" type="text" id="s-custom-path" placeholder="/path/to/notebookai_data.json" style="margin-bottom:0;flex:1">
+          <button class="btn btn-ghost" onclick="browseCustomPath()" style="white-space:nowrap;padding:6px 10px">Browse…</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">Auto-sync on every change</div><div class="setting-desc">Writes to sync file automatically</div></div>
+        <label class="toggle-switch"><input type="checkbox" id="s-autosync" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Updates</div>
+      <label class="lbl">GitHub username</label>
+      <input class="field" type="text" id="s-gh-owner" placeholder="your-github-username">
+      <label class="lbl">Repository name</label>
+      <input class="field" type="text" id="s-gh-repo" placeholder="notebookai">
+      <label class="lbl">Local repo path (for Option B updates)</label>
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <input class="field" type="text" id="s-repo-path" placeholder="~/code/notebookai-app" style="margin-bottom:0;flex:1">
+        <button class="btn btn-ghost" onclick="browseRepoPath()" style="white-space:nowrap;padding:6px 10px">Browse…</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">The folder containing your cloned source code (where package.json lives)</div>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Appearance</div>
+      <label class="lbl">Theme</label>
+      <select class="field" id="s-darkmode">
+        <option value="system">System default</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Data</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="exportJSON()">📦 Export all projects</button>
+        <button class="btn btn-ghost" onclick="importJSON()">📂 Import projects</button>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="section-title">Keyboard shortcuts</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--text2)">
+        <div>New project<span class="kbd">⌘N</span></div>
+        <div>Add source<span class="kbd">⌘⇧A</span></div>
+        <div>Sync now<span class="kbd">⌘S</span></div>
+        <div>Settings<span class="kbd">⌘,</span></div>
+        <div>Export chat<span class="kbd">⌘⇧E</span></div>
+        <div>Toggle dark<span class="kbd">⌘⇧D</span></div>
+        <div>Send message<span class="kbd">↵</span></div>
+        <div>New line<span class="kbd">⇧↵</span></div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-solid" onclick="saveSettingsFromModal()">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Updater Modal ── -->
+<div class="overlay" id="updater-overlay" onclick="if(event.target===this)closeUpdater()">
+  <div class="modal" style="width:480px">
+    <h3>🔄 Check for updates</h3>
+    <div id="update-check-section">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
+        Current version: <strong id="current-version">—</strong>
+      </div>
+      <div id="update-status-box" class="status-box loading" style="display:none"></div>
+      <div id="update-info" style="display:none;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px" id="update-headline"></div>
+        <div style="font-size:12px;color:var(--text2)" id="update-details"></div>
+      </div>
+    </div>
+
+    <div id="update-run-section" style="display:none">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
+        Running update from <code style="font-family:var(--mono);font-size:11px;background:var(--surface2);padding:1px 4px;border-radius:3px" id="update-repo-path-display">—</code>
+      </div>
+      <div class="update-log" id="update-log"></div>
+      <div id="update-done-msg" style="display:none;font-size:12px;color:var(--green);margin-bottom:8px;font-weight:500">
+        ✅ Update complete — quit and reopen NotebookAI from /Applications.
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeUpdater()">Close</button>
+      <button class="btn btn-solid" id="btn-check-update" onclick="checkForUpdate()">Check now</button>
+      <button class="btn btn-green" id="btn-run-update" onclick="runUpdate()" style="display:none">Install update</button>
+    </div>
+  </div>
+</div>
+
+<!-- New/Edit Project Modal -->
+<div class="overlay" id="proj-overlay" onclick="if(event.target===this)closeProjModal()">
+  <div class="modal">
+    <h3 id="proj-modal-title">New project</h3>
+    <label class="lbl">Name</label>
+    <input class="field" type="text" id="proj-name-input" placeholder="e.g. AI Safety Research…" onkeydown="if(event.key==='Enter')saveProject()">
+    <label class="lbl">Icon</label>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <label class="lbl">Description <span style="color:var(--text3)">(optional)</span></label>
+    <textarea class="field" id="proj-desc-input" rows="2" placeholder="What is this project about?"></textarea>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeProjModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="saveProject()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Source Modal -->
+<div class="overlay" id="src-overlay" onclick="if(event.target===this)closeSrcModal()">
+  <div class="modal">
+    <h3>Add a source</h3>
+    <div class="tabs">
+      <button class="tab on" id="t-text" onclick="switchTab('text',this)">Paste text</button>
+      <button class="tab" id="t-url" onclick="switchTab('url',this)">From URL</button>
+      <button class="tab" id="t-file" onclick="switchTab('file',this)">Upload file</button>
+    </div>
+    <div id="pane-text">
+      <label class="lbl">Source name</label>
+      <input class="field" type="text" id="src-name" placeholder="Article title, paper name…">
+      <label class="lbl">Content</label>
+      <textarea class="field" id="src-text" rows="6" placeholder="Paste your text here…"></textarea>
+    </div>
+    <div id="pane-url" style="display:none">
+      <label class="lbl">URL</label>
+      <div class="url-row">
+        <input class="field" type="url" id="url-in" placeholder="https://example.com/article" onkeydown="if(event.key==='Enter')doFetch()">
+        <button class="btn btn-solid" id="fetch-btn" onclick="doFetch()" style="white-space:nowrap;padding:6px 10px">Fetch</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+        <span style="font-size:11px;color:var(--text3)">Method:</span>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer">
+          <input type="radio" name="fetch-method" id="fm-native" value="native" checked> 🆓 Native (free, no API key)
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer">
+          <input type="radio" name="fetch-method" id="fm-ai" value="ai"> ☁️ AI-assisted (Anthropic key required)
+        </label>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:10px" id="fetch-method-note">
+        Native works for most articles and docs. Use AI-assisted for JavaScript-heavy pages (SPAs, paywalled content).
+      </div>
+      <div id="fetch-status" style="display:none"></div>
+      <div id="url-preview" style="display:none">
+        <label class="lbl">Source name</label>
+        <input class="field" type="text" id="url-name" placeholder="Source name">
+        <label class="lbl" style="display:flex;justify-content:space-between"><span>Preview</span><span id="char-ct" style="color:var(--text3)"></span></label>
+        <textarea class="field" id="url-body" rows="4" style="font-size:11px;font-family:var(--mono);color:var(--text2)"></textarea>
+      </div>
+    </div>
+    <div id="pane-file" style="display:none">
+      <div class="drop-zone" id="drop-zone" onclick="triggerFile()" ondragover="dov(event)" ondragleave="dol()" ondrop="dop(event)">
+        <div class="di">📎</div><div>Drop a file or click to browse</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">TXT and MD files supported</div>
+      </div>
+      <input type="file" id="file-in" accept=".txt,.md" style="display:none" onchange="onFile(event)">
+      <div id="file-status" style="display:none;font-size:11px;color:var(--text2);padding:2px 0"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeSrcModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="addSrc()">Add source</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal confirm-modal">
+    <h3 id="confirm-title">Confirm</h3>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-action-btn" onclick="confirmAction()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const EMOJIS=['📚','🔬','💡','📝','🌐','🧪','📊','🗂️','🏛️','🔭','🧬','⚗️','📰','🎯','🔍','💼','🌿','🏗️','🎓','🧠','✍️','🗺️','💻','📡'];
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function uid(){return 'id'+Date.now()+Math.random().toString(36).slice(2,7)}
+function openExt(url){window.electron.openExternal(url)}
+
+// ── State ────────────────────────────────────────────────
+let projects=[], activeId=null, busy=false, curTab='text';
+let pendingFile=null, fetchedContent=null, fetchedUrl=null;
+let selEmoji='📚', editProjId=null, confirmCb=null, openDd=null;
+let settings={}, cloudPaths={};
+let ollamaCheckTimer=null;
+
+function getProj(){return projects.find(p=>p.id===activeId)}
+
+// ── Persistence ──────────────────────────────────────────
+async function saveAll(){
+  const result=await window.electron.saveData({projects,activeId},settings.syncPath);
+  setSyncStatus(result.ok?'ok':'err', result.ok?'Saved':'Save failed');
+  return result.ok;
+}
+async function loadAll(){return window.electron.loadData(settings.syncPath)}
+function setSyncStatus(s,l){$('sync-dot').className='sync-dot '+s;$('sync-label').textContent=l}
+
+// ── AI badge ─────────────────────────────────────────────
+function updateAIBadge(){
+  const b=$('ai-badge');
+  const p=settings.aiProvider||'anthropic';
+  b.className='ai-badge '+p;
+  b.textContent=p==='ollama'?`🦙 ${settings.ollamaModel||'llama3'}`:'☁️ Claude';
+}
+
+// ── Init ─────────────────────────────────────────────────
+async function init(){
+  settings=await window.electron.loadSettings();
+  cloudPaths=await window.electron.detectCloudPaths();
+  applyTheme(settings.darkMode||'system');
+  updateAIBadge();
+  const data=await loadAll();
+  projects=data.projects||[]; activeId=data.activeId||null;
+  buildEmojiGrid(); renderProjects();
+  if(activeId&&getProj()) activateProject(activeId,false); else showHome();
+  setSyncStatus('ok','Ready');
+  window.electron.on('open-settings',()=>openSettings());
+  window.electron.on('open-updater',()=>openUpdater());
+  window.electron.on('new-project',()=>openNewProject());
+  window.electron.on('add-source',()=>openAddSource());
+  window.electron.on('export-chat-md',()=>exportChatMd());
+  window.electron.on('export-json',()=>exportJSON());
+  window.electron.on('import-json',()=>importJSON());
+  window.electron.on('sync-now',()=>triggerSync());
+  window.electron.on('toggle-dark-mode',()=>toggleDarkMode());
+  window.electron.on('dark-mode-changed',()=>{ if(settings.darkMode==='system') applyTheme('system'); });
+  window.electron.on('update-log', msg=>appendUpdateLog(msg));
+  document.addEventListener('click',e=>{if(openDd&&!e.target.closest('.proj-dropdown')&&!e.target.closest('.proj-menu-btn'))closeAllDd()});
+}
+
+// ── Theme ────────────────────────────────────────────────
+function applyTheme(m){
+  if(m==='dark') document.body.classList.add('dark');
+  else if(m==='light') document.body.classList.remove('dark');
+  else window.electron.getDarkMode().then(d=>document.body.classList.toggle('dark',d));
+}
+async function toggleDarkMode(){
+  const d=document.body.classList.contains('dark');
+  settings.darkMode=d?'light':'dark';
+  applyTheme(settings.darkMode);
+  await window.electron.saveSettings(settings);
+}
+
+// ── Sync ─────────────────────────────────────────────────
+async function triggerSync(){
+  setSyncStatus('syncing','Syncing…');
+  const ok=await saveAll();
+  setSyncStatus(ok?'ok':'err',ok?'Synced':'Sync failed');
+}
+
+// ── Settings modal ───────────────────────────────────────
+async function openSettings(){
+  settings=await window.electron.loadSettings();
+  cloudPaths=await window.electron.detectCloudPaths();
+  $('s-api-key').value=settings.apiKey||'';
+  $('s-ollama-host').value=settings.ollamaHost||'http://localhost:11434';
+  $('s-cloud').value=settings.cloudService||'local';
+  $('s-autosync').checked=settings.autoSync!==false;
+  $('s-darkmode').value=settings.darkMode||'system';
+  $('s-custom-path').value=settings.customPath||'';
+  $('s-gh-owner').value=settings.githubOwner||'';
+  $('s-gh-repo').value=settings.githubRepo||'';
+  $('s-repo-path').value=settings.repoPath||'';
+  selectProvider(settings.aiProvider||'anthropic', false);
+  updatePathDisplay();
+  $('settings-overlay').classList.add('open');
+  if((settings.aiProvider||'anthropic')==='ollama') checkOllamaStatus();
+}
+function closeSettings(){$('settings-overlay').classList.remove('open')}
+
+function selectProvider(p, checkOllama=true){
+  $('pb-anthropic').classList.toggle('active',p==='anthropic');
+  $('pb-ollama').classList.toggle('active',p==='ollama');
+  $('anthropic-fields').style.display=p==='anthropic'?'block':'none';
+  $('ollama-fields').style.display=p==='ollama'?'block':'none';
+  if(p==='ollama'&&checkOllama) checkOllamaStatus();
+}
+
+async function checkOllamaStatus(){
+  const host=$('s-ollama-host').value.trim()||'http://localhost:11434';
+  const el=$('ollama-status');
+  el.className='ollama-status checking'; el.textContent='Checking Ollama…';
+  const result=await window.electron.listOllamaModels(host);
+  if(result.ok&&result.models.length){
+    el.className='ollama-status ok';
+    el.textContent=`✓ Ollama running · ${result.models.length} model${result.models.length!==1?'s':''} available`;
+    const sel=$('s-ollama-model'); sel.innerHTML='';
+    result.models.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+    sel.value=settings.ollamaModel||result.models[0]||'llama3';
+  } else {
+    el.className='ollama-status err';
+    el.textContent='Ollama not running — start it with: ollama serve';
+    $('s-ollama-model').innerHTML='<option value="llama3">llama3 (default)</option>';
+  }
+}
+
+function debouncedCheckOllama(){
+  clearTimeout(ollamaCheckTimer);
+  ollamaCheckTimer=setTimeout(checkOllamaStatus, 800);
+}
+
+function onCloudChange(){updatePathDisplay();}
+function updatePathDisplay(){
+  const svc=$('s-cloud').value;
+  $('custom-path-row').style.display=svc==='custom'?'block':'none';
+  let p=svc==='custom'?($('s-custom-path').value||'—'):svc==='local'?cloudPaths.local:(cloudPaths[svc]||'—');
+  $('s-path-display').textContent=p;
+}
+
+async function browseCustomPath(){
+  const r=await window.electron.showSaveDialog({title:'Choose sync file location',defaultPath:'notebookai_data.json',filters:[{name:'JSON',extensions:['json']}]});
+  if(!r.canceled&&r.filePath){$('s-custom-path').value=r.filePath;updatePathDisplay();}
+}
+
+async function browseRepoPath(){
+  const r=await window.electron.showOpenDialog({title:'Select your notebookai-app source folder',properties:['openDirectory']});
+  if(!r.canceled&&r.filePaths.length) $('s-repo-path').value=r.filePaths[0];
+}
+
+async function saveSettingsFromModal(){
+  const svc=$('s-cloud').value;
+  const provider=$('pb-ollama').classList.contains('active')?'ollama':'anthropic';
+  let syncPath=svc==='custom'?$('s-custom-path').value.trim():svc==='local'?cloudPaths.local:(cloudPaths[svc]||cloudPaths.local);
+  settings={
+    apiKey:$('s-api-key').value.trim(),
+    aiProvider:provider,
+    ollamaModel:$('s-ollama-model').value||'llama3',
+    ollamaHost:$('s-ollama-host').value.trim()||'http://localhost:11434',
+    cloudService:svc, syncPath, customPath:$('s-custom-path').value.trim(),
+    autoSync:$('s-autosync').checked,
+    darkMode:$('s-darkmode').value,
+    githubOwner:$('s-gh-owner').value.trim(),
+    githubRepo:$('s-gh-repo').value.trim(),
+    repoPath:$('s-repo-path').value.trim(),
+    useAutoUpdater:false
+  };
+  applyTheme(settings.darkMode);
+  updateAIBadge();
+  await window.electron.saveSettings(settings);
+  closeSettings();
+  await triggerSync();
+}
+
+// ── Updater modal ────────────────────────────────────────
+async function openUpdater(){
+  $('updater-overlay').classList.add('open');
+  $('update-run-section').style.display='none';
+  $('update-info').style.display='none';
+  $('update-status-box').style.display='none';
+  $('btn-run-update').style.display='none';
+  $('btn-check-update').style.display='inline-flex';
+  $('update-done-msg').style.display='none';
+  const v=await window.electron.getAppVersion();
+  $('current-version').textContent=v||'unknown';
+}
+function closeUpdater(){$('updater-overlay').classList.remove('open')}
+
+async function checkForUpdate(){
+  const owner=settings.githubOwner, repo=settings.githubRepo;
+  if(!owner||!repo){
+    showUpdateStatus('err','Set your GitHub username and repo in Settings → Updates first.');
+    return;
+  }
+  $('btn-check-update').disabled=true;
+  showUpdateStatus('loading','Checking GitHub for updates…');
+  const r=await window.electron.checkForUpdate({owner,repo});
+  $('btn-check-update').disabled=false;
+  if(!r.ok){showUpdateStatus('err','Could not check for updates: '+r.error);return;}
+  $('update-status-box').style.display='none';
+  $('update-info').style.display='block';
+  if(r.hasUpdate){
+    $('update-headline').textContent=`🎉 Update available: v${r.latest}`;
+    $('update-details').textContent=`You have v${r.current}. Click "Install update" to download and build the new version.`;
+    $('btn-run-update').style.display='inline-flex';
+  } else {
+    $('update-headline').textContent=`✓ You're up to date (v${r.current})`;
+    $('update-details').textContent=`No newer version found on GitHub.`;
+    $('btn-run-update').style.display='none';
+  }
+}
+
+function showUpdateStatus(type,msg){
+  const el=$('update-status-box');
+  el.style.display='flex'; el.className=`status-box ${type}`;
+  el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);
+}
+
+async function runUpdate(){
+  const repoPath=settings.repoPath;
+  if(!repoPath){
+    showUpdateStatus('err','Set your local repo path in Settings → Updates first.');
+    return;
+  }
+  $('btn-run-update').disabled=true;
+  $('btn-check-update').style.display='none';
+  $('update-info').style.display='none';
+  $('update-run-section').style.display='block';
+  $('update-repo-path-display').textContent=repoPath;
+  $('update-log').textContent='';
+  $('update-done-msg').style.display='none';
+  const r=await window.electron.runUpdateB({repoPath});
+  $('btn-run-update').disabled=false;
+  if(r.ok) $('update-done-msg').style.display='block';
+}
+
+function appendUpdateLog(msg){
+  const el=$('update-log');
+  el.textContent+=msg;
+  el.scrollTop=el.scrollHeight;
+}
+
+// ── Projects ─────────────────────────────────────────────
+function renderProjects(){
+  const el=$('projects-list');
+  if(!projects.length){el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No projects yet.</div>`;return;}
+  el.innerHTML=projects.map(p=>`
+    <div class="proj-item${p.id===activeId?' active':''}" onclick="activateProject('${p.id}',true)" id="pi-${p.id}">
+      <div class="proj-emoji">${p.emoji||'📚'}</div>
+      <div class="proj-info"><div class="proj-name">${esc(p.name)}</div><div class="proj-meta">${p.sources.length} source${p.sources.length!==1?'s':''}</div></div>
+      <button class="proj-menu-btn" onclick="toggleDd(event,'${p.id}')">⋯</button>
+      <div class="proj-dropdown" id="dd-${p.id}">
+        <button onclick="editProject('${p.id}')">✏️ Rename</button>
+        <button onclick="dupProject('${p.id}')">📋 Duplicate</button>
+        <button onclick="exportProjectJSON('${p.id}')">📦 Export</button>
+        <button class="danger" onclick="delProjectConfirm('${p.id}')">🗑️ Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function activateProject(id,persist=true){
+  activeId=id; closeAllDd();
+  const p=getProj(); if(!p) return;
+  $('sb-proj-name').textContent=p.name;
+  $('chat-title').textContent=p.name;
+  $('input-wrap').style.display='block';
+  $('export-btn').style.display='flex';
+  renderSources(); renderHistory(); updateStatus();
+  if(persist&&settings.autoSync!==false) saveAll();
+  renderProjects();
+}
+
+function showHome(){
+  activeId=null;
+  $('sb-proj-name').textContent='—';
+  $('chat-title').textContent='Select a project';
+  $('chat-sub').textContent='Choose or create a project to get started';
+  $('input-wrap').style.display='none';
+  $('export-btn').style.display='none';
+  $('sources-list').innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No project selected.</div>`;
+  $('messages').innerHTML=`<div class="proj-home"><div class="proj-home-emoji">📚</div><h2>Welcome to NotebookAI</h2><p>Create a project to organise your sources and research conversations.</p><button class="btn btn-solid" onclick="openNewProject()">Create first project</button></div>`;
+}
+
+function openNewProject(){
+  editProjId=null; selEmoji='📚';
+  $('proj-modal-title').textContent='New project';
+  $('proj-name-input').value=''; $('proj-desc-input').value='';
+  updateEmojiGrid(); $('proj-overlay').classList.add('open');
+  setTimeout(()=>$('proj-name-input').focus(),120);
+}
+
+function editProject(id){
+  closeAllDd();
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  editProjId=id; selEmoji=p.emoji||'📚';
+  $('proj-modal-title').textContent='Edit project';
+  $('proj-name-input').value=p.name; $('proj-desc-input').value=p.desc||'';
+  updateEmojiGrid(); $('proj-overlay').classList.add('open');
+  setTimeout(()=>$('proj-name-input').focus(),120);
+}
+
+async function saveProject(){
+  const name=$('proj-name-input').value.trim(); if(!name){alert('Please enter a project name.');return;}
+  const desc=$('proj-desc-input').value.trim();
+  if(editProjId){
+    const p=projects.find(x=>x.id===editProjId);
+    if(p){p.name=name;p.emoji=selEmoji;p.desc=desc;}
+    if(activeId===editProjId){$('sb-proj-name').textContent=name;$('chat-title').textContent=name;}
+  } else {
+    const p={id:uid(),name,emoji:selEmoji,desc,sources:[],history:[]};
+    projects.push(p); activateProject(p.id,false);
+  }
+  if(settings.autoSync!==false) await saveAll();
+  renderProjects(); closeProjModal();
+}
+
+async function dupProject(id){
+  closeAllDd();
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  const c=JSON.parse(JSON.stringify(p)); c.id=uid(); c.name=p.name+' (copy)'; c.history=[];
+  projects.push(c);
+  if(settings.autoSync!==false) await saveAll();
+  renderProjects();
+}
+
+function delProjectConfirm(id){
+  closeAllDd();
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  $('confirm-title').textContent='Delete project?';
+  $('confirm-msg').textContent=`"${p.name}" and all its sources and chat history will be permanently deleted.`;
+  $('confirm-action-btn').textContent='Delete';
+  confirmCb=async()=>{
+    projects=projects.filter(x=>x.id!==id);
+    if(activeId===id) showHome();
+    if(settings.autoSync!==false) await saveAll();
+    renderProjects(); closeConfirm();
+  };
+  $('confirm-overlay').classList.add('open');
+}
+
+function closeProjModal(){$('proj-overlay').classList.remove('open')}
+function toggleDd(e,id){e.stopPropagation();const dd=$('dd-'+id),was=dd.classList.contains('open');closeAllDd();if(!was){dd.classList.add('open');openDd=id;}}
+function closeAllDd(){document.querySelectorAll('.proj-dropdown.open').forEach(d=>d.classList.remove('open'));openDd=null;}
+
+function buildEmojiGrid(){$('emoji-grid').innerHTML=EMOJIS.map(e=>`<div class="emoji-opt${e===selEmoji?' selected':''}" onclick="selectEmoji('${e}')">${e}</div>`).join('');}
+function updateEmojiGrid(){document.querySelectorAll('.emoji-opt').forEach(el=>el.classList.toggle('selected',el.textContent===selEmoji));}
+function selectEmoji(e){selEmoji=e;updateEmojiGrid();}
+
+// ── Sources ──────────────────────────────────────────────
+function renderSources(){
+  const p=getProj(), el=$('sources-list');
+  const ICONS={text:'📄',file:'📁',url:'🌐'};
+  if(!p||!p.sources.length){el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No sources yet.</div>`;return;}
+  el.innerHTML=p.sources.map(s=>`
+    <div class="source-item${s.on?' active':''}" onclick="viewSrc('${s.id}')">
+      <div class="src-icon">${ICONS[s.type]||'📄'}</div>
+      <div class="src-info"><div class="src-name">${esc(s.name)}</div><div class="src-preview">${esc(s.url||s.content.slice(0,45)+'…')}</div></div>
+      <div class="src-toggle${s.on?' on':''}" onclick="toggleSrc(event,'${s.id}')"></div>
+    </div>`).join('');
+}
+
+function toggleSrc(e,id){
+  e.stopPropagation(); const p=getProj(); if(!p) return;
+  const s=p.sources.find(x=>x.id===id);
+  if(s){s.on=!s.on; if(settings.autoSync!==false) saveAll(); renderSources(); updateStatus();}
+}
+
+function viewSrc(id){
+  const p=getProj(); if(!p) return;
+  const s=p.sources.find(x=>x.id===id); if(!s) return;
+  $('panel-title').textContent=s.name; $('panel-body').textContent=s.content;
+  const pu=$('panel-url');
+  if(s.url){pu.style.display='block';pu.textContent=s.url;}else{pu.style.display='none';}
+  $('panel').classList.add('open');
+}
+function closePanel(){$('panel').classList.remove('open')}
+
+function updateStatus(){
+  const p=getProj(); if(!p){$('chat-sub').textContent='No project selected';return;}
+  const n=p.sources.filter(s=>s.on).length;
+  $('chat-sub').textContent=n?`${n} source${n>1?'s':''} active · strict grounding on`:'No sources active';
+  updateSend();
+}
+
+// ── Chat ─────────────────────────────────────────────────
+function renderHistory(){
+  const p=getProj(), el=$('messages');
+  if(!p||!p.history.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">${p?p.emoji:'🔬'}</div><h3>${p?esc(p.name):'Research'}</h3><p>${p&&p.desc?esc(p.desc):'Add sources and ask questions.'}</p></div>`;
+    $('quick-row').style.display='flex'; return;
+  }
+  el.innerHTML=''; $('quick-row').style.display='none';
+  p.history.forEach(m=>addBubbleDom(m.role==='user'?'user':'ai',m.content,m.oos,m.provider));
+  el.scrollTop=el.scrollHeight;
+}
+
+function updateSend(){
+  const p=getProj();
+  $('send-btn').disabled=!(p&&$('chat-input').value.trim()&&p.sources.some(s=>s.on));
+}
+
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';updateSend();}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function sq(t){const i=$('chat-input');i.value=t;resize(i);sendMsg();}
+
+async function sendMsg(){
+  const inp=$('chat-input'), text=inp.value.trim();
+  if(!text||busy) return;
+  const provider=settings.aiProvider||'anthropic';
+  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings (⌘,).');openSettings();return;}
+  const p=getProj(); if(!p) return;
+  const active=p.sources.filter(s=>s.on); if(!active.length) return;
+
+  const el=$('messages');
+  if(el.querySelector('.empty-state,.proj-home')) el.innerHTML='';
+  $('quick-row').style.display='none';
+  addBubbleDom('user',text);
+  p.history.push({role:'user',content:text});
+  inp.value='';inp.style.height='auto';updateSend();
+
+  const tid=addThinking(); busy=true;
+  try {
+    let reply;
+    if(provider==='ollama'){
+      reply=await callOllama(active, p.history.filter(m=>m.role==='user'||m.role==='assistant'));
+    } else {
+      reply=await callAnthropic(active, p.history.filter(m=>m.role==='user'||m.role==='assistant'));
+    }
+    removeThinking(tid);
+    const oos=reply.startsWith('NOT_IN_SOURCES:');
+    const clean=oos?reply.replace('NOT_IN_SOURCES:','').trim():reply;
+    addBubbleDom('ai',clean,oos,provider);
+    p.history.push({role:'assistant',content:clean,oos,provider});
+    if(settings.autoSync!==false) saveAll();
+  } catch(err){
+    removeThinking(tid);
+    addError(err.message);
+  }
+  busy=false; updateSend();
+}
+
+async function callAnthropic(active, messages){
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildPrompt(active),messages})
+  });
+  const data=await resp.json();
+  if(data.error) throw new Error(data.error.message);
+  return data.content?.map(b=>b.text||'').join('')||'No response.';
+}
+
+async function callOllama(active, messages){
+  const host=settings.ollamaHost||'http://localhost:11434';
+  const model=settings.ollamaModel||'llama3';
+  const systemPrompt=buildPrompt(active);
+  // Ollama uses OpenAI-compatible /v1/chat/completions
+  const resp=await fetch(`${host}/v1/chat/completions`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model,
+      messages:[{role:'system',content:systemPrompt},...messages],
+      stream:false
+    })
+  });
+  if(!resp.ok){
+    const t=await resp.text();
+    throw new Error(`Ollama error ${resp.status}: ${t}`);
+  }
+  const data=await resp.json();
+  return data.choices?.[0]?.message?.content||'No response from Ollama.';
+}
+
+function buildPrompt(active){
+  const blocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}"${s.url?` url="${s.url}"`:''}>\n${s.content}\n</source>`).join('\n\n');
+  return `You are a strict research assistant. Your only knowledge base is the sources provided below. Do not use any outside knowledge, training data, or general information beyond what is explicitly stated in these sources.\n\nRULES:\n1. Answer ONLY from the provided sources.\n2. Always cite the source name using [Source Name] when making a claim.\n3. If a question cannot be answered from the sources, respond with: "NOT_IN_SOURCES: [brief explanation]"\n4. No "generally speaking" unless from a source.\n5. If only part is covered, answer that and flag the rest.\n\nSources:\n\n${blocks}`;
+}
+
+function addBubbleDom(role,text,oos=false,provider='anthropic'){
+  const el=$('messages'),d=document.createElement('div');
+  d.className=`message ${role}`;
+  const avatarClass=role==='ai'?(provider==='ollama'?'avatar ai ollama':'avatar ai'):'avatar user';
+  const avatarLabel=role==='ai'?(provider==='ollama'?'🦙':'AI'):'You';
+  d.innerHTML=`<div class="${avatarClass}">${avatarLabel}</div><div class="bubble${oos?' oos':''}">${role==='ai'?fmtAI(text,oos):'<p>'+esc(text)+'</p>'}</div>`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+
+function fmtAI(text,oos){
+  const pre=oos?`<div class="oos-label">⚠️ Not found in sources</div>`:'';
+  const html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.*?)`/g,'<code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px;font-size:11px">$1</code>')
+    .replace(/\[([^\]]+)\]/g,'<span class="cite">📎 $1</span>')
+    .split('\n\n').map(p=>{
+      if(p.startsWith('- ')||p.includes('\n- '))
+        return`<ul>${p.split('\n').filter(l=>l.trim()).map(l=>`<li>${l.replace(/^[-•]\s*/,'')}</li>`).join('')}</ul>`;
+      return`<p>${p.replace(/\n/g,'<br>')}</p>`;
+    }).join('');
+  return pre+html;
+}
+
+function addThinking(){
+  const el=$('messages'),id='tk'+Date.now(),d=document.createElement('div');
+  d.className='message ai';d.id=id;
+  d.innerHTML=`<div class="avatar ai">AI</div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;return id;
+}
+function removeThinking(id){$(id)?.remove()}
+function addError(msg){const el=$('messages'),d=document.createElement('div');d.innerHTML=`<div class="err-bubble">⚠️ ${esc(msg)}</div>`;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function clearChat(){const p=getProj();if(!p)return;p.history=[];if(settings.autoSync!==false)saveAll();renderHistory();}
+
+// ── Export / Import ──────────────────────────────────────
+async function exportChatMd(){
+  const p=getProj(); if(!p||!p.history.length){alert('No chat history to export.');return;}
+  let md=`# ${p.name} — Chat Export\n\n_Exported ${new Date().toLocaleString()}_\n\n---\n\n`;
+  p.history.forEach(m=>{
+    if(m.role==='user') md+=`**You:** ${m.content}\n\n`;
+    else md+=`**NotebookAI:** ${m.content}\n\n`;
+  });
+  const r=await window.electron.showSaveDialog({defaultPath:`${p.name.replace(/[^a-z0-9]/gi,'_')}_chat.md`,filters:[{name:'Markdown',extensions:['md']},{name:'Text',extensions:['txt']}]});
+  if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,md);if(!res.ok) alert('Export failed: '+res.error);}
+}
+
+async function exportJSON(){
+  const r=await window.electron.showSaveDialog({defaultPath:`notebookai_backup_${new Date().toISOString().slice(0,10)}.json`,filters:[{name:'JSON',extensions:['json']}]});
+  if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,JSON.stringify({projects,exportedAt:new Date().toISOString()},null,2));if(!res.ok) alert('Export failed: '+res.error);}
+}
+
+async function exportProjectJSON(id){
+  closeAllDd();
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  const r=await window.electron.showSaveDialog({defaultPath:`${p.name.replace(/[^a-z0-9]/gi,'_')}_export.json`,filters:[{name:'JSON',extensions:['json']}]});
+  if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,JSON.stringify({projects:[p],exportedAt:new Date().toISOString()},null,2));if(!res.ok) alert('Export failed: '+res.error);}
+}
+
+async function importJSON(){
+  const r=await window.electron.showOpenDialog({filters:[{name:'JSON',extensions:['json']}],properties:['openFile']});
+  if(r.canceled||!r.filePaths.length) return;
+  const res=await window.electron.readFile(r.filePaths[0]);
+  if(!res.ok){alert('Could not read file: '+res.error);return;}
+  try {
+    const data=JSON.parse(res.content);
+    const imported=data.projects||[];
+    if(!imported.length){alert('No projects found in file.');return;}
+    $('confirm-title').textContent='Import projects?';
+    $('confirm-msg').textContent=`Import ${imported.length} project${imported.length!==1?'s':''} from file? Projects with duplicate IDs will be skipped.`;
+    $('confirm-action-btn').textContent='Import';
+    confirmCb=async()=>{
+      let added=0;
+      imported.forEach(p=>{if(!projects.find(x=>x.id===p.id)){projects.push(p);added++;}});
+      if(settings.autoSync!==false) await saveAll();
+      renderProjects(); closeConfirm();
+      alert(`Imported ${added} project${added!==1?'s':''}.`);
+    };
+    $('confirm-overlay').classList.add('open');
+  } catch(e){alert('Invalid JSON file.');}
+}
+
+// ── Add source modal ─────────────────────────────────────
+function openAddSource(){
+  if(!getProj()){alert('Please select a project first.');return;}
+  $('src-name').value='';$('src-text').value='';$('url-in').value='';
+  $('url-preview').style.display='none';$('fetch-status').style.display='none';$('file-status').style.display='none';
+  fetchedContent=null;fetchedUrl=null;pendingFile=null;
+  switchTab('text',$('t-text'));$('src-overlay').classList.add('open');
+}
+function closeSrcModal(){$('src-overlay').classList.remove('open')}
+function switchTab(tab,btn){curTab=tab;['text','url','file'].forEach(t=>{$('t-'+t).classList.toggle('on',t===tab);$('pane-'+t).style.display=t===tab?'block':'none';});}
+
+async function doFetch(){
+  const url=$('url-in').value.trim(); if(!url) return;
+  if(!url.startsWith('http://') && !url.startsWith('https://')){showFetch('err','Please enter a valid URL starting with https://');return;}
+
+  const method=document.querySelector('input[name="fetch-method"]:checked')?.value||'native';
+
+  if(method==='ai'){
+    if(!settings.apiKey){alert('AI-assisted fetch requires an Anthropic API key. Set it in Settings (⌘,), or use the Native method instead.');return;}
+    await doFetchAI(url);
+  } else {
+    await doFetchNative(url);
+  }
+}
+
+async function doFetchNative(url){
+  showFetch('loading','Fetching page…');
+  $('fetch-btn').disabled=true; $('url-preview').style.display='none';
+  fetchedContent=null;fetchedUrl=null;
+  const r=await window.electron.fetchUrlNative(url);
+  $('fetch-btn').disabled=false;
+  if(!r.ok){showFetch('err',r.error);fetchedContent=null;return;}
+  fetchedContent=r.content; fetchedUrl=url;
+  $('url-name').value=r.title;
+  $('url-body').value=r.content;
+  $('char-ct').textContent=r.content.length.toLocaleString()+' chars';
+  $('url-preview').style.display='block';
+  showFetch('ok',`✓ ${r.content.length.toLocaleString()} characters extracted (native)`);
+}
+
+async function doFetchAI(url){
+  showFetch('loading','Fetching with AI…');
+  $('fetch-btn').disabled=true; $('url-preview').style.display='none';
+  fetchedContent=null;fetchedUrl=null;
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:`You are a content extractor. Use web search to retrieve content from the URL the user provides. Return ONLY a JSON object — no markdown, no explanation:\n{"title": "page title", "content": "full extracted text, cleaned of HTML/navigation/ads"}`,
+        messages:[{role:'user',content:`Fetch and extract content from: ${url}`}]})
+    });
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const txt=(data.content||[]).map(b=>b.text||'').join('');
+    const jm=txt.match(/\{[\s\S]*\}/); if(!jm) throw new Error('Could not parse page content');
+    const parsed=JSON.parse(jm[0]);
+    if(!parsed.content||parsed.content.length<50) throw new Error('Page content too short or inaccessible');
+    fetchedContent=parsed.content;fetchedUrl=url;
+    $('url-name').value=parsed.title||new URL(url).hostname;
+    $('url-body').value=parsed.content;
+    $('char-ct').textContent=parsed.content.length.toLocaleString()+' chars';
+    $('url-preview').style.display='block';
+    showFetch('ok',`✓ ${parsed.content.length.toLocaleString()} characters extracted (AI-assisted)`);
+  } catch(err){showFetch('err','Failed: '+err.message);fetchedContent=null;}
+  $('fetch-btn').disabled=false;
+}
+
+function showFetch(type,msg){const el=$('fetch-status');el.style.display='flex';el.className=`status-box ${type}`;el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);}
+
+function triggerFile(){$('file-in').click()}
+function dov(e){e.preventDefault();$('drop-zone').classList.add('drag')}
+function dol(){$('drop-zone').classList.remove('drag')}
+function dop(e){e.preventDefault();dol();const f=e.dataTransfer.files[0];if(f)loadFile(f)}
+function onFile(e){const f=e.target.files[0];if(f)loadFile(f)}
+function loadFile(file){const r=new FileReader();r.onload=e=>{pendingFile={name:file.name.replace(/\.[^.]+$/,''),content:e.target.result};const s=$('file-status');s.style.display='block';s.textContent=`✓ ${file.name} loaded (${Math.round(e.target.result.length/1024)}KB)`;};r.readAsText(file);}
+
+async function addSrc(){
+  const p=getProj(); if(!p) return;
+  let name,content,url=null,type='text';
+  if(curTab==='text'){
+    name=$('src-name').value.trim()||'Untitled source';
+    content=$('src-text').value.trim(); if(!content){alert('Please paste some text.');return;}
+  } else if(curTab==='url'){
+    if(!fetchedContent){alert('Please fetch a URL first.');return;}
+    name=$('url-name').value.trim()||'Web source';content=fetchedContent;url=fetchedUrl;type='url';
+  } else {
+    if(!pendingFile){alert('Please select a file.');return;}
+    name=pendingFile.name;content=pendingFile.content;type='file';
+  }
+  p.sources.push({id:uid(),name,type,url,on:true,content});
+  if(settings.autoSync!==false) await saveAll();
+  renderSources();updateStatus();closeSrcModal();
+}
+
+// ── Confirm ──────────────────────────────────────────────
+function closeConfirm(){$('confirm-overlay').classList.remove('open');confirmCb=null}
+function confirmAction(){if(confirmCb)confirmCb()}
+
+init();
+</script>
+</body>
+</html>
