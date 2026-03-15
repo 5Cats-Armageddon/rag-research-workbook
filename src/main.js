@@ -4,6 +4,9 @@ const fs = require('fs');
 const os = require('os');
 const { exec } = require('child_process');
 
+const IS_MAC = process.platform === 'darwin';
+const IS_WIN = process.platform === 'win32';
+
 // ── Settings store ─────────────────────────────────────────────────────────
 const userDataPath = app.getPath('userData');
 const settingsPath = path.join(userDataPath, 'settings.json');
@@ -16,20 +19,18 @@ function loadSettings() {
     }
   } catch (e) {}
   return {
-    apiKey: '',
     elevenlabsKey: '',
-    aiProvider: 'anthropic',        // 'anthropic' | 'ollama'
+    apiKey: '',
+    aiProvider: 'anthropic',
     ollamaModel: 'llama3',
     ollamaHost: 'http://localhost:11434',
     cloudService: 'local',
     syncPath: defaultDataPath,
     darkMode: 'system',
     autoSync: true,
-    // Option B update fields
-    repoPath: '',                    // e.g. ~/code/notebookai-app
-    githubOwner: '',                 // your GitHub username
-    githubRepo: '',                  // repo name, e.g. notebookai
-    // Option A fields (inactive — flip useAutoUpdater: true to activate)
+    repoPath: '',
+    githubOwner: '',
+    githubRepo: '',
     useAutoUpdater: false
   };
 }
@@ -42,6 +43,46 @@ function saveSettings(s) {
 // ── Cloud folder detection ─────────────────────────────────────────────────
 function detectCloudPaths() {
   const home = os.homedir();
+
+  if (IS_WIN) {
+    // Windows paths
+    const user = process.env.USERNAME || process.env.USERPROFILE?.split(path.sep).pop() || 'User';
+    const oneDriveEnv = process.env.OneDrive || process.env.OneDriveConsumer;
+
+    // Dropbox: read info.json
+    const dbInfoWin = path.join(home, 'AppData', 'Roaming', 'Dropbox', 'info.json');
+    let dropboxPath = path.join(home, 'Dropbox', 'RAG Research Workbook');
+    try {
+      if (fs.existsSync(dbInfoWin)) {
+        const info = JSON.parse(fs.readFileSync(dbInfoWin, 'utf8'));
+        const p = (info.personal || info.business || {}).path;
+        if (p) dropboxPath = path.join(p, 'RAG Research Workbook');
+      }
+    } catch(e) {}
+
+    // Google Drive: common Windows mount points
+    const gdCandidates = [
+      path.join(home, 'Google Drive', 'My Drive', 'RAG Research Workbook'),
+      path.join('G:', 'My Drive', 'RAG Research Workbook'),
+      path.join('H:', 'My Drive', 'RAG Research Workbook')
+    ];
+    let googleDrivePath = gdCandidates[0];
+    for (const c of gdCandidates) {
+      try { if (fs.existsSync(path.dirname(path.dirname(c)))) { googleDrivePath = c; break; } } catch(e) {}
+    }
+
+    return {
+      icloud: null, // iCloud Drive is not available on Windows
+      dropbox: dropboxPath,
+      googledrive: googleDrivePath,
+      onedrive: oneDriveEnv
+        ? path.join(oneDriveEnv, 'RAG Research Workbook')
+        : path.join(home, 'OneDrive', 'RAG Research Workbook'),
+      local: defaultDataPath
+    };
+  }
+
+  // macOS paths
   return {
     icloud: path.join(home, 'Library', 'Mobile Documents', 'com~apple~CloudDocs', 'RAG Research Workbook'),
     dropbox: (() => {
@@ -105,20 +146,20 @@ function saveData(data, syncPath) {
   }
 }
 
-// ── Shell helper — runs a command and streams output to renderer ───────────
+// ── Shell helper ───────────────────────────────────────────────────────────
 function runCommand(cmd, cwd, onData) {
   return new Promise((resolve, reject) => {
-    // Extend PATH so npm, git, and node are found regardless of how the app was launched
+    const extraPaths = IS_WIN
+      ? [] // Windows uses PATH as-is; npm/git are typically on PATH after install
+      : ['/usr/local/bin', '/opt/homebrew/bin', '/opt/homebrew/sbin', `${os.homedir()}/.nvm/versions/node/current/bin`];
+
     const env = {
       ...process.env,
-      PATH: [
-        process.env.PATH,
-        '/usr/local/bin',
-        '/opt/homebrew/bin',
-        '/opt/homebrew/sbin',
-        `${os.homedir()}/.nvm/versions/node/current/bin`
-      ].join(':')
+      PATH: IS_WIN
+        ? process.env.PATH
+        : [process.env.PATH, ...extraPaths].join(':')
     };
+
     const child = exec(cmd, { cwd, env });
     child.stdout.on('data', d => onData(d.toString()));
     child.stderr.on('data', d => onData(d.toString()));
@@ -127,7 +168,22 @@ function runCommand(cmd, cwd, onData) {
   });
 }
 
-// ── Native URL fetcher (no API key required) ───────────────────────────────
+// ── GitHub release check ───────────────────────────────────────────────────
+function fetchLatestRelease(owner, repo) {
+  const https = require('https');
+  return new Promise((resolve, reject) => {
+    https.get(
+      { hostname: 'api.github.com', path: `/repos/${owner}/${repo}/releases/latest`, headers: { 'User-Agent': 'RAG-Research-Workbook' } },
+      res => {
+        let body = '';
+        res.on('data', d => body += d);
+        res.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
+      }
+    ).on('error', reject);
+  });
+}
+
+// ── Native URL fetcher ─────────────────────────────────────────────────────
 function fetchUrlNative(targetUrl) {
   return new Promise((resolve, reject) => {
     const follow = (url, redirects = 0) => {
@@ -139,13 +195,12 @@ function fetchUrlNative(targetUrl) {
         port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
         path: parsed.pathname + parsed.search,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.5',
         }
       };
       const req = mod.get(options, res => {
-        // Follow redirects
         if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
           const next = res.headers.location.startsWith('http')
             ? res.headers.location
@@ -153,15 +208,10 @@ function fetchUrlNative(targetUrl) {
           res.resume();
           return follow(next, redirects + 1);
         }
-        if (res.statusCode !== 200) {
-          return reject(new Error(`HTTP ${res.statusCode}`));
-        }
+        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
         const chunks = [];
         res.on('data', d => chunks.push(d));
-        res.on('end', () => {
-          const html = Buffer.concat(chunks).toString('utf8');
-          resolve(html);
-        });
+        res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
       });
       req.on('error', reject);
       req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timed out')); });
@@ -170,13 +220,9 @@ function fetchUrlNative(targetUrl) {
   });
 }
 
-// Strip HTML to clean readable text
 function htmlToText(html, url) {
-  // Extract <title>
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
   const title = titleMatch ? titleMatch[1].trim().replace(/\s+/g, ' ') : new URL(url).hostname;
-
-  // Remove entire blocks we never want
   let text = html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -185,53 +231,16 @@ function htmlToText(html, url) {
     .replace(/<header[\s\S]*?<\/header>/gi, ' ')
     .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
     .replace(/<aside[\s\S]*?<\/aside>/gi, ' ')
-    .replace(/<!--[\s\S]*?-->/g, ' ');
-
-  // Turn block elements into newlines
-  text = text
+    .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<\/?(p|div|section|article|h[1-6]|li|br|tr|blockquote)[^>]*>/gi, '\n')
-    .replace(/<\/?(ul|ol|table)[^>]*>/gi, '\n');
-
-  // Strip remaining tags
-  text = text.replace(/<[^>]+>/g, ' ');
-
-  // Decode common HTML entities
-  text = text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
+    .replace(/<\/?(ul|ol|table)[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
     .replace(/&[a-z]+;/gi, ' ');
-
-  // Collapse whitespace — preserve paragraph breaks
-  text = text
-    .split('\n')
-    .map(l => l.replace(/\s+/g, ' ').trim())
-    .filter(l => l.length > 0)
-    .join('\n');
-
-  // Collapse 3+ consecutive blank-ish lines
+  text = text.split('\n').map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.length > 0).join('\n');
   text = text.replace(/\n{3,}/g, '\n\n').trim();
-
   return { title, content: text };
-}
-
-// ── GitHub release check ───────────────────────────────────────────────────
-function fetchLatestRelease(owner, repo) {
-  const https = require('https');
-  return new Promise((resolve, reject) => {
-    https.get(
-      { hostname: 'api.github.com', path: `/repos/${owner}/${repo}/releases/latest`, headers: { 'User-Agent': 'RAG Research Workbook' } },
-      res => {
-        let body = '';
-        res.on('data', d => body += d);
-        res.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
-      }
-    ).on('error', reject);
-  });
 }
 
 // ── Window ─────────────────────────────────────────────────────────────────
@@ -239,32 +248,67 @@ let mainWindow;
 
 function createWindow() {
   const settings = loadSettings();
-  mainWindow = new BrowserWindow({
-    width: 1280, height: 820, minWidth: 960, minHeight: 640,
-    titleBarStyle: 'hiddenInset',
-    vibrancy: 'sidebar',
+
+  const winOptions = {
+    width: 1280,
+    height: 820,
+    minWidth: 960,
+    minHeight: 640,
     backgroundColor: '#f7f6f3',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false
     }
-  });
+  };
+
+  // macOS: hidden inset title bar with vibrancy
+  if (IS_MAC) {
+    winOptions.titleBarStyle = 'hiddenInset';
+    winOptions.vibrancy = 'sidebar';
+  }
+
+  // Windows: standard title bar, custom icon
+  if (IS_WIN) {
+    winOptions.frame = true;
+    winOptions.autoHideMenuBar = false;
+    if (fs.existsSync(path.join(__dirname, '..', 'assets', 'icon.ico'))) {
+      winOptions.icon = path.join(__dirname, '..', 'assets', 'icon.ico');
+    }
+  }
+
+  mainWindow = new BrowserWindow(winOptions);
+
   if (settings.darkMode === 'dark') nativeTheme.themeSource = 'dark';
   else if (settings.darkMode === 'light') nativeTheme.themeSource = 'light';
   else nativeTheme.themeSource = 'system';
+
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   buildMenu();
 }
 
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.whenReady().then(() => {
+  createWindow();
+
+  // Custom About panel
+  if (IS_MAC) {
+    app.setAboutPanelOptions({
+      applicationName: 'RAG Research Workbook',
+      applicationVersion: app.getVersion(),
+      version: '',
+      copyright: '© 2025 — AI-powered research assistant'
+    });
+  }
+});
+app.on('window-all-closed', () => { if (!IS_MAC) app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 
 // ── Menu ───────────────────────────────────────────────────────────────────
 function buildMenu() {
+  const appMenuLabel = IS_MAC ? 'RAG Research Workbook' : 'File';
+
   const template = [
-    {
+    ...(IS_MAC ? [{
       label: 'RAG Research Workbook',
       submenu: [
         { label: 'About RAG Research Workbook', role: 'about' },
@@ -278,19 +322,26 @@ function buildMenu() {
         { type: 'separator' },
         { label: 'Quit RAG Research Workbook', role: 'quit' }
       ]
-    },
+    }] : []),
     {
       label: 'File',
       submenu: [
-        { label: 'New Project', accelerator: 'Cmd+N', click: () => mainWindow.webContents.send('new-project') },
+        { label: 'New Project', accelerator: IS_MAC ? 'Cmd+N' : 'Ctrl+N', click: () => mainWindow.webContents.send('new-project') },
         { type: 'separator' },
-        { label: 'Add Source…', accelerator: 'Cmd+Shift+A', click: () => mainWindow.webContents.send('add-source') },
+        { label: 'Add Source…', accelerator: IS_MAC ? 'Cmd+Shift+A' : 'Ctrl+Shift+A', click: () => mainWindow.webContents.send('add-source') },
         { type: 'separator' },
-        { label: 'Export Current Chat as Markdown', accelerator: 'Cmd+Shift+E', click: () => mainWindow.webContents.send('export-chat-md') },
+        { label: 'Export Current Chat as Markdown', accelerator: IS_MAC ? 'Cmd+Shift+E' : 'Ctrl+Shift+E', click: () => mainWindow.webContents.send('export-chat-md') },
         { label: 'Export All Projects as JSON', click: () => mainWindow.webContents.send('export-json') },
         { label: 'Import Projects from JSON…', click: () => mainWindow.webContents.send('import-json') },
         { type: 'separator' },
-        { label: 'Sync Now', accelerator: 'Cmd+S', click: () => mainWindow.webContents.send('sync-now') }
+        { label: 'Sync Now', accelerator: IS_MAC ? 'Cmd+S' : 'Ctrl+S', click: () => mainWindow.webContents.send('sync-now') },
+        ...(!IS_MAC ? [
+          { type: 'separator' },
+          { label: 'Check for Updates…', click: () => mainWindow.webContents.send('open-updater') },
+          { label: 'Settings…', accelerator: 'Ctrl+,', click: () => mainWindow.webContents.send('open-settings') },
+          { type: 'separator' },
+          { label: 'Exit', role: 'quit' }
+        ] : [])
       ]
     },
     {
@@ -303,21 +354,22 @@ function buildMenu() {
     {
       label: 'View',
       submenu: [
-        { label: 'Toggle Dark Mode', accelerator: 'Cmd+Shift+D', click: () => mainWindow.webContents.send('toggle-dark-mode') },
+        { label: 'Toggle Dark Mode', accelerator: IS_MAC ? 'Cmd+Shift+D' : 'Ctrl+Shift+D', click: () => mainWindow.webContents.send('toggle-dark-mode') },
         { type: 'separator' },
         { label: 'Actual Size', role: 'resetZoom' },
         { label: 'Zoom In', role: 'zoomIn' },
         { label: 'Zoom Out', role: 'zoomOut' },
         { type: 'separator' },
         { role: 'togglefullscreen' },
-        { label: 'Toggle DevTools', accelerator: 'Cmd+Alt+I', role: 'toggleDevTools' }
+        { label: 'Toggle DevTools', accelerator: IS_MAC ? 'Cmd+Alt+I' : 'Ctrl+Shift+I', role: 'toggleDevTools' }
       ]
     },
     {
       label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { role: 'close' }]
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, ...(IS_MAC ? [{ role: 'close' }] : [])]
     }
   ];
+
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
@@ -331,6 +383,7 @@ ipcMain.handle('save-settings', (e, s) => {
   return ok;
 });
 ipcMain.handle('detect-cloud-paths', () => detectCloudPaths());
+ipcMain.handle('get-platform', () => process.platform);
 ipcMain.handle('load-data', (e, syncPath) => loadData(syncPath));
 ipcMain.handle('save-data', (e, data, syncPath) => saveData(data, syncPath));
 ipcMain.handle('get-app-version', () => app.getVersion());
@@ -340,6 +393,7 @@ ipcMain.handle('path-exists', (e, p) => { try { return fs.existsSync(p); } catch
 ipcMain.handle('open-external', (e, url) => shell.openExternal(url));
 ipcMain.handle('show-open-dialog', async (e, opts) => dialog.showOpenDialog(mainWindow, opts));
 ipcMain.handle('show-save-dialog', async (e, opts) => dialog.showSaveDialog(mainWindow, opts));
+
 ipcMain.handle('write-file', (e, fp, content) => {
   try { ensureDir(fp); fs.writeFileSync(fp, content, 'utf8'); return { ok: true }; }
   catch(err) { return { ok: false, error: err.message }; }
@@ -348,14 +402,59 @@ ipcMain.handle('read-file', (e, fp) => {
   try { return { ok: true, content: fs.readFileSync(fp, 'utf8') }; }
   catch(err) { return { ok: false, error: err.message }; }
 });
+ipcMain.handle('write-file-base64', (e, fp, b64) => {
+  try { ensureDir(fp); fs.writeFileSync(fp, Buffer.from(b64, 'base64')); return { ok: true }; }
+  catch(err) { return { ok: false, error: err.message }; }
+});
+ipcMain.handle('copy-tts-file', (e, src, dest) => {
+  try { fs.copyFileSync(src, dest); return { ok: true }; }
+  catch(err) { return { ok: false, error: err.message }; }
+});
 
-// Native URL fetch (no API key)
+// ── TTS ────────────────────────────────────────────────────────────────────
+ipcMain.handle('tts', async (e, text) => {
+  const tmpFile = path.join(os.tmpdir(), `rrw_tts_${Date.now()}.${IS_MAC ? 'aiff' : 'wav'}`);
+
+  if (IS_MAC) {
+    // macOS: use `say` command
+    const escaped = text.replace(/'/g, "'\\''");
+    return new Promise(resolve => {
+      exec(`say -o '${tmpFile}' '${escaped}'`, err => {
+        if (err) { resolve({ ok: false, error: err.message }); return; }
+        resolve({ ok: true, filePath: tmpFile, fileUrl: `file://${tmpFile}`, format: 'aiff' });
+      });
+    });
+  }
+
+  if (IS_WIN) {
+    // Windows: use PowerShell SpeechSynthesizer
+    const escaped = text.replace(/"/g, '`"').replace(/'/g, "''");
+    const ps = `
+Add-Type -AssemblyName System.Speech;
+$s = New-Object System.Speech.Synthesis.SpeechSynthesizer;
+$s.SetOutputToWaveFile('${tmpFile.replace(/\\/g, '\\\\')}');
+$s.Speak('${escaped}');
+$s.Dispose();
+`.trim();
+    const psCmd = `powershell -NoProfile -Command "${ps.replace(/\n/g, ' ')}"`;
+    return new Promise(resolve => {
+      exec(psCmd, err => {
+        if (err) { resolve({ ok: false, error: err.message }); return; }
+        resolve({ ok: true, filePath: tmpFile, fileUrl: `file://${tmpFile.replace(/\\/g, '/')}`, format: 'wav' });
+      });
+    });
+  }
+
+  return { ok: false, error: 'TTS not supported on this platform.' };
+});
+
+// ── Native URL fetch ───────────────────────────────────────────────────────
 ipcMain.handle('fetch-url-native', async (e, url) => {
   try {
     const html = await fetchUrlNative(url);
     const { title, content } = htmlToText(html, url);
     if (!content || content.length < 100) {
-      return { ok: false, error: 'Page content too short or empty. This page may require JavaScript to render — try the Anthropic method instead.' };
+      return { ok: false, error: 'Page content too short or empty. This page may require JavaScript to render — try the AI-assisted method instead.' };
     }
     return { ok: true, title, content };
   } catch(err) {
@@ -363,40 +462,25 @@ ipcMain.handle('fetch-url-native', async (e, url) => {
   }
 });
 
-// Parse uploaded files from base64 buffer (PDF, DOCX, XLSX, PPTX, HTML, TXT, MD)
+// ── File parser ────────────────────────────────────────────────────────────
 ipcMain.handle('parse-file-from-buffer', async (e, fileName, base64) => {
   const ext = path.extname(fileName).toLowerCase();
   const buffer = Buffer.from(base64, 'base64');
-
   try {
-    // ── Plain text formats ───────────────────────────────────────────────
     if (ext === '.txt' || ext === '.md') {
-      const content = buffer.toString('utf8');
-      return { ok: true, content, type: ext.slice(1) };
+      return { ok: true, content: buffer.toString('utf8'), type: ext.slice(1) };
     }
-
-    // ── HTML ─────────────────────────────────────────────────────────────
     if (ext === '.html' || ext === '.htm') {
-      const html = buffer.toString('utf8');
-      const { content } = htmlToText(html, fileName);
+      const { content } = htmlToText(buffer.toString('utf8'), fileName);
       return { ok: true, content, type: 'html' };
     }
-
-    // ── PDF ──────────────────────────────────────────────────────────────
     if (ext === '.pdf') {
       const pdfParse = require('pdf-parse');
       const data = await pdfParse(buffer);
-      const content = data.text
-        .replace(/[ \t]{3,}/g, ' ')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-      if (!content || content.length < 20) {
-        return { ok: false, error: 'No text found in this PDF. It may be a scanned image — try copying and pasting the text as a text source instead.' };
-      }
+      const content = data.text.replace(/[ \t]{3,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+      if (!content || content.length < 20) return { ok: false, error: 'No text found in this PDF. It may be a scanned image — paste the text manually instead.' };
       return { ok: true, content, type: 'pdf', pages: data.numpages };
     }
-
-    // ── DOCX ─────────────────────────────────────────────────────────────
     if (ext === '.docx' || ext === '.doc') {
       const mammoth = require('mammoth');
       const result = await mammoth.extractRawText({ buffer });
@@ -404,61 +488,43 @@ ipcMain.handle('parse-file-from-buffer', async (e, fileName, base64) => {
       if (!content) return { ok: false, error: 'No text found in this Word document.' };
       return { ok: true, content, type: 'docx' };
     }
-
-    // ── XLSX / XLS / CSV ─────────────────────────────────────────────────
     if (ext === '.xlsx' || ext === '.xls' || ext === '.csv') {
       const XLSX = require('xlsx');
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       const lines = [];
       workbook.SheetNames.forEach(sheetName => {
-        const sheet = workbook.Sheets[sheetName];
-        const csv = XLSX.utils.sheet_to_csv(sheet, { blankrows: false });
-        if (csv.trim()) {
-          lines.push(`--- Sheet: ${sheetName} ---`);
-          lines.push(csv.trim());
-        }
+        const csv = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName], { blankrows: false });
+        if (csv.trim()) { lines.push(`--- Sheet: ${sheetName} ---`); lines.push(csv.trim()); }
       });
       const content = lines.join('\n\n');
       if (!content) return { ok: false, error: 'No data found in this spreadsheet.' };
       return { ok: true, content, type: ext.slice(1) };
     }
-
-    // ── PPTX / PPT via officeparser ───────────────────────────────────────
     if (ext === '.pptx' || ext === '.ppt') {
-      // officeparser needs a temp file path
       const tmpFile = path.join(os.tmpdir(), `rrw_${Date.now()}${ext}`);
       fs.writeFileSync(tmpFile, buffer);
       try {
         const officeparser = require('officeparser');
         const content = await new Promise((resolve, reject) => {
           officeparser.parseOffice(tmpFile, (data, err) => {
-            if (err) reject(new Error(err));
-            else resolve(data);
+            if (err) reject(new Error(err)); else resolve(data);
           });
         });
         fs.unlinkSync(tmpFile);
-        if (!content || !content.trim()) {
-          return { ok: false, error: 'No text found in this PowerPoint file.' };
-        }
+        if (!content || !content.trim()) return { ok: false, error: 'No text found in this PowerPoint file.' };
         return { ok: true, content: content.trim(), type: 'pptx' };
       } catch(err) {
         try { fs.unlinkSync(tmpFile); } catch(e) {}
         throw err;
       }
     }
-
-    // ── Unsupported ──────────────────────────────────────────────────────
-    return {
-      ok: false,
-      error: `Unsupported file type: ${ext}\n\nSupported formats: PDF, DOCX, XLSX, XLS, CSV, PPTX, HTML, TXT, MD.\n\nAudio and video files are not supported — transcribe them externally and paste the transcript as a text source.`
-    };
-
-  } catch (err) {
+    return { ok: false, error: `Unsupported file type: ${ext}\n\nSupported: PDF, DOCX, XLSX, XLS, CSV, PPTX, HTML, TXT, MD.\n\nAudio and video files are not supported — transcribe them externally and paste the transcript as a text source.` };
+  } catch(err) {
     return { ok: false, error: `Failed to parse ${fileName}: ${err.message}` };
   }
 });
 
-// Check GitHub for latest version
+// ── Update: check ──────────────────────────────────────────────────────────
 ipcMain.handle('check-for-update', async (e, { owner, repo }) => {
   try {
     const release = await fetchLatestRelease(owner, repo);
@@ -470,45 +536,73 @@ ipcMain.handle('check-for-update', async (e, { owner, repo }) => {
   }
 });
 
-// Option B: git pull + npm install + npm run build + copy .app
+// ── Update: Option B ───────────────────────────────────────────────────────
 ipcMain.handle('run-update-b', async (e, { repoPath }) => {
   const expanded = repoPath.replace(/^~/, os.homedir());
   if (!fs.existsSync(expanded)) {
     return { ok: false, error: `Repo path not found: ${expanded}\nMake sure you set the correct path in Settings → Updates.` };
   }
   const send = msg => { if (mainWindow) mainWindow.webContents.send('update-log', msg); };
+
   try {
     send('► git pull\n');
     await runCommand('git pull', expanded, send);
     send('\n► npm install\n');
     await runCommand('npm install', expanded, send);
     send('\n► npm run build\n');
-    await runCommand('CSC_IDENTITY_AUTO_DISCOVERY=false npm run build', expanded, send);
-    send('\n► Detecting Mac architecture…\n');
-    // Determine the correct electron-builder output folder for this machine
-    const arch = os.arch(); // 'arm64' (Apple Silicon) or 'x64' (Intel)
-    const distFolders = [`dist/mac-${arch}`, 'dist/mac', `dist/mac-universal`];
+    const buildCmd = IS_MAC ? 'CSC_IDENTITY_AUTO_DISCOVERY=false npm run build' : 'npm run build:win';
+    await runCommand(buildCmd, expanded, send);
+
+    send('\n► Detecting build output…\n');
+    const arch = os.arch();
     let appSrc = null;
-    for (const folder of distFolders) {
-      const candidate = path.join(expanded, folder, 'RAG Research Workbook.app');
-      if (fs.existsSync(candidate)) { appSrc = candidate; break; }
-    }
-    if (!appSrc) {
-      // Last resort: scan dist/ for any *.app
-      const distDir = path.join(expanded, 'dist');
-      const entries = fs.readdirSync(distDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const candidate = path.join(distDir, entry.name, 'RAG Research Workbook.app');
-          if (fs.existsSync(candidate)) { appSrc = candidate; break; }
+
+    if (IS_MAC) {
+      const macFolders = [`dist/mac-${arch}`, 'dist/mac', 'dist/mac-universal'];
+      for (const folder of macFolders) {
+        const candidate = path.join(expanded, folder, 'RAG Research Workbook.app');
+        if (fs.existsSync(candidate)) { appSrc = candidate; break; }
+      }
+      if (!appSrc) {
+        const distDir = path.join(expanded, 'dist');
+        for (const entry of fs.readdirSync(distDir, { withFileTypes: true })) {
+          if (entry.isDirectory()) {
+            const candidate = path.join(distDir, entry.name, 'RAG Research Workbook.app');
+            if (fs.existsSync(candidate)) { appSrc = candidate; break; }
+          }
         }
       }
+      if (!appSrc) throw new Error('Could not find RAG Research Workbook.app in dist/');
+      send(`► Found: ${appSrc}\n`);
+      send('\n► Copying to /Applications…\n');
+      await runCommand(`cp -r "${appSrc}" "/Applications/RAG Research Workbook.app"`, expanded, send);
     }
-    if (!appSrc) throw new Error(`Could not find RAG Research Workbook.app in dist/. Tried: ${distFolders.join(', ')}`);
-    send(`► Found app at: ${appSrc}\n`);
-    send('\n► Copying RAG Research Workbook.app to /Applications…\n');
-    await runCommand(`cp -r "${appSrc}" "/Applications/RAG Research Workbook.app"`, expanded, send);
-    send('\n✅ Update complete! Quit and reopen the app from /Applications to use the new version.\n');
+
+    if (IS_WIN) {
+      // On Windows, point the user to the installer rather than auto-copying
+      const winFolders = [`dist/win-unpacked`, `dist/win-${arch}-unpacked`];
+      let exePath = null;
+      for (const folder of winFolders) {
+        const candidate = path.join(expanded, folder, 'RAG Research Workbook.exe');
+        if (fs.existsSync(candidate)) { exePath = candidate; break; }
+      }
+      // Look for NSIS installer
+      const distDir = path.join(expanded, 'dist');
+      const installers = fs.readdirSync(distDir).filter(f => f.endsWith('.exe') && f.includes('Setup'));
+      if (installers.length) {
+        const installerPath = path.join(distDir, installers[0]);
+        send(`\n► Installer built: ${installerPath}\n`);
+        send('► Opening installer…\n');
+        shell.openPath(installerPath);
+      } else if (exePath) {
+        send(`\n► Portable build found: ${exePath}\n`);
+        send('► You can run the new version directly from the dist folder.\n');
+      }
+    }
+
+    send('\n✅ Update complete!\n');
+    if (IS_MAC) send('Quit and reopen RAG Research Workbook from /Applications.\n');
+    if (IS_WIN) send('Run the installer that just opened to complete the update.\n');
     return { ok: true };
   } catch(err) {
     send(`\n❌ Error: ${err.message}\n`);
@@ -516,47 +610,7 @@ ipcMain.handle('run-update-b', async (e, { repoPath }) => {
   }
 });
 
-// Option A scaffold — uncomment + add electron-updater to deps to activate
-// const { autoUpdater } = require('electron-updater');
-// app.whenReady().then(() => {
-//   const s = loadSettings();
-//   if (s.useAutoUpdater && s.githubOwner && s.githubRepo) {
-//     autoUpdater.setFeedURL({ provider: 'github', owner: s.githubOwner, repo: s.githubRepo });
-//     autoUpdater.checkForUpdatesAndNotify();
-//     autoUpdater.on('update-downloaded', () => mainWindow.webContents.send('update-downloaded'));
-//   }
-// });
-// ipcMain.handle('install-update', () => autoUpdater.quitAndInstall());
-
-// macOS TTS — generates audio using the built-in `say` command
-ipcMain.handle('mac-tts', async (e, text) => {
-  const tmpFile = path.join(os.tmpdir(), `rrw_tts_${Date.now()}.aiff`);
-  // Escape single quotes in text for shell safety
-  const escaped = text.replace(/'/g, "'\\''");
-  return new Promise(resolve => {
-    exec(`say -o '${tmpFile}' '${escaped}'`, (err) => {
-      if (err) { resolve({ ok: false, error: err.message }); return; }
-      resolve({ ok: true, filePath: tmpFile, fileUrl: `file://${tmpFile}` });
-    });
-  });
-});
-
-// Copy the TTS temp file to a user-chosen location
-ipcMain.handle('copy-tts-file', (e, src, dest) => {
-  try { fs.copyFileSync(src, dest); return { ok: true }; }
-  catch(err) { return { ok: false, error: err.message }; }
-});
-
-// Write file from base64 (for MP3 audio export)
-ipcMain.handle('write-file-base64', (e, filePath, b64) => {
-  try {
-    ensureDir(filePath);
-    fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
-    return { ok: true };
-  } catch(err) { return { ok: false, error: err.message }; }
-});
-
-// Ollama model list helper
+// ── Ollama model list ──────────────────────────────────────────────────────
 ipcMain.handle('list-ollama-models', async (e, host) => {
   const http = require('http');
   const url = new URL('/api/tags', host || 'http://localhost:11434');
@@ -574,6 +628,21 @@ ipcMain.handle('list-ollama-models', async (e, host) => {
   });
 });
 
+// ── Dark mode ──────────────────────────────────────────────────────────────
 nativeTheme.on('updated', () => {
   if (mainWindow) mainWindow.webContents.send('dark-mode-changed', nativeTheme.shouldUseDarkColors);
 });
+
+// ── Option A scaffold (inactive) ──────────────────────────────────────────
+// Uncomment + add electron-updater to deps to activate auto-updates:
+//
+// const { autoUpdater } = require('electron-updater');
+// app.whenReady().then(() => {
+//   const s = loadSettings();
+//   if (s.useAutoUpdater && s.githubOwner && s.githubRepo) {
+//     autoUpdater.setFeedURL({ provider: 'github', owner: s.githubOwner, repo: s.githubRepo });
+//     autoUpdater.checkForUpdatesAndNotify();
+//     autoUpdater.on('update-downloaded', () => mainWindow.webContents.send('update-downloaded'));
+//   }
+// });
+// ipcMain.handle('install-update', () => autoUpdater.quitAndInstall());

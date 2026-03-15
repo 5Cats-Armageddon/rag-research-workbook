@@ -1,13 +1,13 @@
-# RAG Research Workbook v1.2.0
+# RAG Research Workbook v1.2.1
 
-A native macOS research assistant. Organize sources into projects, chat with strict source grounding, generate podcasts from your sources, and sync to iCloud/Dropbox/Google Drive/OneDrive. Runs entirely free with local Ollama models.
+A native macOS and Windows research assistant. Organize sources into projects, chat with strict source grounding, generate podcasts from your sources, and sync to cloud storage. Runs entirely free with local Ollama models.
 
 ---
 
 ## Quick Start
 
 ### Prerequisites
-- macOS 12 or later
+- macOS 12+ or Windows 10/11
 - Node.js 18+
 
 ### Run from source
@@ -18,21 +18,62 @@ npm install
 npm start
 ```
 
-### Build a distributable .app
+### Build a distributable app
 
+**macOS:**
 ```bash
 CSC_IDENTITY_AUTO_DISCOVERY=false npm run build
 ```
 
-The app is built to `dist/mac-arm64/` (Apple Silicon) or `dist/mac-x64/` (Intel). Drag `RAG Research Workbook.app` to `/Applications`.
+Output: `dist/mac-arm64/` (Apple Silicon) or `dist/mac-x64/` (Intel)
+Drag `RAG Research Workbook.app` to `/Applications`.
 
 If macOS says "unidentified developer": right-click → Open → Open anyway.
+
+**Windows:**
+```bash
+npm run build:win
+```
+Output: `dist/` — contains an NSIS installer (`.exe` setup wizard) and a portable `.exe`.
+Run the installer, or launch the portable version directly.
+
+**Both platforms at once** (must run on the platform you want to build for, or use GitHub Actions — see below):
+```bash
+npm run build:all
+```
+
+---
+
+## Automated builds with GitHub Actions
+
+The included `.github/workflows/build.yml` workflow automatically builds for both Mac and Windows and attaches the binaries to a GitHub Release whenever you push a version tag.
+
+### Setup (one time)
+
+No extra configuration needed — the workflow uses the built-in `GITHUB_TOKEN` secret that GitHub provides automatically.
+
+### How to trigger a release
+
+```bash
+# Bump version in package.json, then:
+git add .
+git commit -m "v1.3.0"
+git tag v1.3.0
+git push && git push --tags
+```
+
+GitHub Actions will:
+1. Build the macOS `.dmg` and `.zip` on a macOS runner
+2. Build the Windows NSIS installer and portable `.exe` on a Windows runner
+3. Create a GitHub Release and attach all four files
+
+This means you never need a Windows machine to produce Windows builds — GitHub handles it.
 
 ---
 
 ## AI Provider: Free (Ollama) vs Paid (Anthropic)
 
-Open **Settings (⌘,) → AI Provider** to toggle between providers.
+Open **Settings → AI Provider** to toggle between providers.
 
 ### Ollama — completely free, runs locally
 
@@ -43,65 +84,57 @@ Open **Settings (⌘,) → AI Provider** to toggle between providers.
    ollama pull mistral       # smaller, faster
    ollama pull llama3:70b    # highest quality, needs 40GB+ RAM
    ```
-3. Start Ollama (it may already be running):
+3. Start Ollama:
    ```bash
    ollama serve
    ```
 4. In Settings, select **Ollama**, choose your model, click Save.
-
-The green 🦙 badge in the title bar confirms Ollama is active.
 
 ### Anthropic — Claude Sonnet 4, paid per use
 
 Get an API key at https://console.anthropic.com/settings/keys and paste it in Settings.
 Typical cost: ~$0.01–$0.05 per research session.
 
-**Note:** URL fetching has two modes:
-- **Native (free)** — uses Node.js directly, no API key needed. Works for most articles, blogs, and documentation pages.
-- **AI-assisted** — uses the Anthropic web_search tool for better extraction on complex pages. Requires an Anthropic API key.
+**URL fetching modes:**
+- **Native (free)** — Node.js direct fetch, no API key needed. Works for most articles and docs.
+- **AI-assisted** — Anthropic web_search tool for JavaScript-heavy pages. Requires API key.
 
 ---
 
 ## Podcast
 
-The Podcast tab generates a listenable podcast from your active sources. Click the **Podcast** tab at the top of the main panel, or use the 🎙️ quick action button in Chat.
+
+The Podcast tab generates a listenable podcast from your active sources.
 
 ### Generating a script
 
-1. Make sure at least one source is active (toggled on) in the sidebar
-2. Choose a **format**: two-host discussion/debate, or single narrator summary
+1. Make sure at least one source is active in the sidebar
+2. Choose a **format**: two-host discussion/debate or single narrator summary
 3. Set a **target length** (2–20 minutes) and **tone/style**
-4. Click **Generate script** — the script is grounded strictly in your sources
-5. Review and edit each line directly in the panel before generating audio
+4. Click **Generate script**
+5. Review and edit each line before generating audio
 
 ### Generating audio
 
-Click **Generate audio** after the script is ready. The app uses one of two methods depending on your settings:
-
 #### ElevenLabs — high-quality AI voices (recommended)
 
-ElevenLabs produces natural-sounding AI voices with distinct voices for each host.
-
-**Setup:**
 1. Create a free account at https://elevenlabs.io
-2. Go to your profile → API Keys → Create API Key
-3. Set permissions: **Text to Speech → Access**, **Voices → Read**. Leave Sound Effects and Audio Isolation as No Access. Leave the Restrict Key toggle off.
-4. Copy the key and paste it into **Settings (⌘,) → Podcast — ElevenLabs voices**
+2. Go to Profile → API Keys → Create API Key
+3. Permissions: **Text to Speech → Access**, **Voices → Read**. Leave all others as No Access. Leave Restrict Key off.
+4. Paste the key into **Settings → Podcast — ElevenLabs voices**
 
-**Free tier:** 10,000 characters (~10 minutes of audio) per month. Sufficient for regular use.
+Free tier: 10,000 characters (~10 minutes of audio) per month.
+Output: **MP3**
 
-Output format: **MP3** (exportable via the Save audio button)
+#### Built-in system TTS — free fallback
 
-#### macOS built-in TTS — free fallback
-
-If no ElevenLabs key is set, the app uses macOS's built-in `say` command. Single voice only, lower quality, but completely free with no setup.
-
-Output format: **AIFF** (exportable via the Save audio button)
+No setup required. Uses macOS `say` command on Mac, or PowerShell `SpeechSynthesizer` on Windows.
+Output: **AIFF** (Mac) or **WAV** (Windows)
 
 ### Exporting
 
-- **Export script** — saves the script as `.txt` or `.md` for use in Descript, Podcastle, or any other tool
-- **Save audio** — saves the generated audio as MP3 (ElevenLabs) or AIFF (macOS TTS)
+- **Export script** — saves as `.txt` or `.md`
+- **Save audio** — saves MP3, AIFF, or WAV
 
 ---
 
@@ -109,62 +142,16 @@ Output format: **AIFF** (exportable via the Save audio button)
 
 | Format | Extension(s) | Notes |
 |--------|-------------|-------|
-| PDF | `.pdf` | Text-based PDFs only. Scanned image PDFs will show an error — paste the text manually instead. |
+| PDF | `.pdf` | Text-based PDFs only. Scanned image PDFs show an error. |
 | Word | `.docx`, `.doc` | Full document text extracted |
-| Excel | `.xlsx`, `.xls`, `.csv` | All sheets extracted, labelled by sheet name |
+| Excel | `.xlsx`, `.xls`, `.csv` | All sheets extracted, labeled by sheet name |
 | PowerPoint | `.pptx`, `.ppt` | Slide text extracted in order |
 | HTML | `.html`, `.htm` | Navigation, scripts, and ads stripped |
 | Plain text | `.txt`, `.md` | Loaded as-is |
 | Web URL | — | Native (free) or AI-assisted fetch |
 | Pasted text | — | Paste directly into the text tab |
 
-**Audio and video files are not supported.** To use audio/video content, transcribe it externally and paste the transcript as a text source.
-
----
-
-## Updates (Option B — build on device)
-
-### One-time setup
-
-1. Push your source to GitHub (or fork from the original repo)
-2. Clone it locally:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git ~/code/rag-research-workbook
-   ```
-3. In Settings, fill in:
-   - **GitHub username** — your GitHub handle
-   - **Repository name** — the repo name
-   - **Local repo path** — e.g. `~/code/rag-research-workbook`
-
-### Updating
-
-Click **Check for update** in the left rail (or RAG Research Workbook menu → Check for Updates…).
-
-The app will:
-1. Check GitHub for a newer version tag
-2. Show you what's available
-3. On clicking "Install update": `git pull` → `npm install` → `npm run build` → copy to `/Applications`
-
-You'll see a live terminal log of the process. After it finishes, quit and reopen the app.
-
-### Publishing a new version
-
-```bash
-# Bump version in package.json, then:
-git add . && git commit -m "v1.3.0"
-git tag v1.3.0
-git push && git push --tags
-```
-
-Then create a release on GitHub for that tag. The app checks the latest GitHub release tag against its own `package.json` version.
-
-### Switching to Option A (electron-updater) later
-
-When you're ready for fully automatic background updates:
-1. `npm install electron-updater`
-2. In `src/main.js`, uncomment the Option A block at the bottom
-3. Set `useAutoUpdater: true` in settings
-4. Build and publish releases to GitHub with `electron-builder` — it generates the required `latest-mac.yml` automatically
+**Audio and video files are not supported.** Transcribe them externally and paste the transcript as a text source.
 
 ---
 
@@ -172,30 +159,57 @@ When you're ready for fully automatic background updates:
 
 Open **Settings → Cloud sync** and pick your service:
 
-| Service | Requirement |
-|---------|-------------|
-| iCloud Drive | iCloud Drive enabled in System Settings |
-| Dropbox | Dropbox desktop app installed |
-| Google Drive | Google Drive for Desktop installed |
-| OneDrive | OneDrive macOS app installed |
-| Custom path | Any folder, NAS, or external drive |
+| Service | Mac | Windows | Requirement |
+|---------|-----|---------|-------------|
+| iCloud Drive | ✓ | ✗ | iCloud Drive enabled in System Settings |
+| Dropbox | ✓ | ✓ | Dropbox desktop app installed |
+| Google Drive | ✓ | ✓ | Google Drive for Desktop installed |
+| OneDrive | ✓ | ✓ | OneDrive app installed (built into Windows) |
+| Custom path | ✓ | ✓ | Any folder, NAS, or external drive |
+| Local only | ✓ | ✓ | No sync, stored in app data folder |
 
-With **Auto-sync** on, data is written on every change. The sync dot (●) in the title bar shows status.
+With **Auto-sync** on, data is written on every change.
+
+---
+
+## Updates (Option B — build on device)
+
+### One-time setup
+
+1. Clone the repo locally:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+   ```
+2. In Settings, fill in:
+   - **GitHub username**
+   - **Repository name**
+   - **Local repo path** — the folder containing `package.json`
+
+### How it works
+
+Click **Check for update** in the left rail.
+
+- **Mac:** `git pull` → `npm install` → `npm run build` → copies `.app` to `/Applications`
+- **Windows:** `git pull` → `npm install` → `npm run build:win` → opens the new installer automatically
+
+### Using GitHub Actions instead (recommended for Windows users)
+
+If you don't want to build locally, push a new tag to GitHub and the Actions workflow builds both platforms automatically. Download the installer from the GitHub Releases page.
 
 ---
 
 ## Keyboard Shortcuts
 
-| Action | Shortcut |
-|--------|----------|
-| New project | ⌘N |
-| Add source | ⌘⇧A |
-| Sync now | ⌘S |
-| Settings | ⌘, |
-| Export current chat | ⌘⇧E |
-| Toggle dark mode | ⌘⇧D |
-| Send message | ↵ |
-| New line in message | ⇧↵ |
+| Action | Mac | Windows |
+|--------|-----|---------|
+| New project | ⌘N | Ctrl+N |
+| Add source | ⌘⇧A | Ctrl+Shift+A |
+| Sync now | ⌘S | Ctrl+S |
+| Settings | ⌘, | Ctrl+, |
+| Export current chat | ⌘⇧E | Ctrl+Shift+E |
+| Toggle dark mode | ⌘⇧D | Ctrl+Shift+D |
+| Send message | ↵ | Enter |
+| New line in message | ⇧↵ | Shift+Enter |
 
 ---
 
@@ -203,12 +217,17 @@ With **Auto-sync** on, data is written on every change. The sync dot (●) in th
 
 ```
 rag-research-workbook/
-├── package.json      # version, build config, dependencies
+├── package.json                    # version, build config, dependencies
+├── .github/
+│   └── workflows/
+│       └── build.yml               # GitHub Actions: auto-build Mac + Windows on tag
 ├── src/
-│   ├── main.js       # Electron main process (Node.js, file I/O, TTS, shell commands)
-│   ├── preload.js    # Secure IPC bridge between main and renderer
-│   └── index.html    # Full UI (chat, podcast, settings, modals)
-└── assets/           # App icon (add icon.icns for a custom icon)
+│   ├── main.js                     # Electron main process (cross-platform)
+│   ├── preload.js                  # Secure IPC bridge
+│   └── index.html                  # Full UI
+└── assets/
+    ├── icon.icns                   # macOS app icon (add your own)
+    └── icon.ico                    # Windows app icon (add your own)
 ```
 
 ---
@@ -217,7 +236,22 @@ rag-research-workbook/
 
 **Ollama not detected in Settings**
 Make sure Ollama is running: `ollama serve`
-Check the host field matches — default is `http://localhost:11434`
+Default host: `http://localhost:11434`
+
+**ElevenLabs voices not loading**
+Check your API key. Permissions needed: Text to Speech → Access, Voices → Read. Restrict Key should be off.
+
+**ElevenLabs generation stops mid-script**
+You may have hit the 10,000 character monthly limit on the free tier.
+
+**Built-in TTS produces no audio (Mac)**
+Run `say "hello"` in Terminal to confirm TTS is working.
+
+**Built-in TTS produces no audio (Windows)**
+Run in PowerShell: `Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('hello')`
+
+**PDF shows "no text found"**
+The PDF is a scanned image. Use an OCR tool first, or copy and paste the text manually.
 
 **ElevenLabs voices not loading**
 Check your API key in Settings. Make sure the key has Text to Speech → Access and Voices → Read permissions. The Restrict Key toggle should be off.
@@ -236,12 +270,16 @@ The PDF is likely a scanned image rather than a text-based PDF. Copy and paste t
 xattr -cr "/Applications/RAG Research Workbook.app"
 ```
 
+**Windows Defender blocks the installer**
+Click "More info" → "Run anyway". This happens because the app isn't code-signed. It's safe to proceed.
+
 **Update fails with "Repo path not found"**
-Make sure the path in Settings points to the folder containing `package.json`, not a parent folder.
+The path in Settings must point to the folder containing `package.json`.
 
 **git pull fails during update**
-You may have uncommitted local changes. In Terminal:
-```bash
-cd ~/code/rag-research-workbook && git stash && git pull
-```
 
+```bash
+cd ~/path/to/rag-research-workbook
+git stash
+git pull
+```

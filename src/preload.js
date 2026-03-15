@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('electron', {
   saveSettings: s => ipcRenderer.invoke('save-settings', s),
   detectCloudPaths: () => ipcRenderer.invoke('detect-cloud-paths'),
 
+  // Platform
+  getPlatform: () => ipcRenderer.invoke('get-platform'),
+
   // Data
   loadData: syncPath => ipcRenderer.invoke('load-data', syncPath),
   saveData: (data, syncPath) => ipcRenderer.invoke('save-data', data, syncPath),
@@ -20,21 +23,17 @@ contextBridge.exposeInMainWorld('electron', {
   writeFile: (fp, content) => ipcRenderer.invoke('write-file', fp, content),
   readFile: fp => ipcRenderer.invoke('read-file', fp),
   pathExists: p => ipcRenderer.invoke('path-exists', p),
-
-  // Theme
-  getDarkMode: () => ipcRenderer.invoke('get-dark-mode'),
-  openExternal: url => ipcRenderer.invoke('open-external', url),
-
-  // macOS TTS
-  macTTS: text => ipcRenderer.invoke('mac-tts', text),
-  copyTTSFile: (src, dest) => ipcRenderer.invoke('copy-tts-file', src, dest),
   writeFileBase64: (fp, b64) => ipcRenderer.invoke('write-file-base64', fp, b64),
+  copyTTSFile: (src, dest) => ipcRenderer.invoke('copy-tts-file', src, dest),
 
-  // File parsing (accepts base64 buffer + filename)
+  // File parsing
   parseFileFromBuffer: (fileName, b64) => ipcRenderer.invoke('parse-file-from-buffer', fileName, b64),
 
   // Native URL fetch
   fetchUrlNative: url => ipcRenderer.invoke('fetch-url-native', url),
+
+  // TTS (cross-platform: macOS = say, Windows = PowerShell SpeechSynthesizer)
+  tts: text => ipcRenderer.invoke('tts', text),
 
   // Ollama
   listOllamaModels: host => ipcRenderer.invoke('list-ollama-models', host),
@@ -42,6 +41,10 @@ contextBridge.exposeInMainWorld('electron', {
   // Updates
   checkForUpdate: ({ owner, repo }) => ipcRenderer.invoke('check-for-update', { owner, repo }),
   runUpdateB: ({ repoPath }) => ipcRenderer.invoke('run-update-b', { repoPath }),
+
+  // Theme
+  getDarkMode: () => ipcRenderer.invoke('get-dark-mode'),
+  openExternal: url => ipcRenderer.invoke('open-external', url),
 
   // Events: main → renderer
   on: (channel, cb) => {
