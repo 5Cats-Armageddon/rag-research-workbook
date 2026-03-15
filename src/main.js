@@ -296,7 +296,7 @@ app.whenReady().then(() => {
       applicationName: 'RAG Research Workbook',
       applicationVersion: app.getVersion(),
       version: '',
-      copyright: '© 2025 — AI-powered research assistant'
+      copyright: '© 2026 — AI-powered research assistant'
     });
   }
 });

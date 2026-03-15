@@ -1,4 +1,4 @@
-# RAG Research Workbook
+# RAG Research Workbook v1.2.3
 
 A research assistant for macOS and Windows. Organize your sources into projects, chat with an AI that answers strictly from your sources, and generate podcasts — all with optional cloud sync.
 
