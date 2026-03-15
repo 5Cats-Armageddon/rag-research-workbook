@@ -508,7 +508,7 @@ select.field{cursor:pointer}
       <label class="lbl">ElevenLabs API key <span style="color:var(--text3)">(optional — enables high-quality AI voices)</span></label>
       <input class="field" type="password" id="s-el-key" placeholder="Your ElevenLabs API key…">
       <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:0">
-        Get a free key at <a href="#" onclick="openExt('https://elevenlabs.io');return false" style="color:var(--accent)">elevenlabs.io</a> · Without this, macOS built-in TTS is used as a fallback (single voice, lower quality)
+        Get a free key at <a href="#" onclick="openExt('https://elevenlabs.io');return false" style="color:var(--accent)">elevenlabs.io</a> · Without this, built-in system TTS is used as a fallback (single voice, lower quality)
       </div>
     </div>
     <div class="modal-section">
@@ -706,6 +706,11 @@ let podTTSFilePath=null; // track macOS TTS temp file path for export
 let podScript=[], podAudioBlob=null, podAudioUrl=null, audioEl=null;
 let elVoices=[];
 
+let platform = 'darwin'; // updated on init
+const isMac = () => platform === 'darwin';
+const isWin = () => platform === 'win32';
+const modKey = () => isMac() ? '⌘' : 'Ctrl+';
+
 function getProj(){return projects.find(p=>p.id===activeId)}
 
 // ── Persistence ──────────────────────────────────────────
@@ -725,6 +730,34 @@ function updateAIBadge(){
 
 // ── Init ─────────────────────────────────────────────────
 async function init(){
+  platform = await window.electron.getPlatform();
+
+  // Hide macOS title bar drag region on Windows (it shows standard frame instead)
+  if (isWin()) {
+    const tb = document.querySelector('.titlebar');
+    if (tb) { tb.style.paddingLeft = '12px'; tb.style.webkitAppRegion = 'no-drag'; }
+    document.documentElement.style.setProperty('--titlebar', '0px');
+  }
+
+  // Update keyboard shortcut labels for Windows
+  if (isWin()) {
+    document.querySelectorAll('.kbd').forEach(el => {
+      el.textContent = el.textContent
+        .replace('⌘N', 'Ctrl+N').replace('⌘⇧A', 'Ctrl+Shift+A')
+        .replace('⌘S', 'Ctrl+S').replace('⌘,', 'Ctrl+,')
+        .replace('⌘⇧E', 'Ctrl+Shift+E').replace('⌘⇧D', 'Ctrl+Shift+D');
+    });
+    // Update tooltips
+    document.querySelectorAll('[title]').forEach(el => {
+      el.title = el.title.replace('⌘N', 'Ctrl+N').replace('⌘⇧A', 'Ctrl+Shift+A');
+    });
+  }
+
+  // Hide iCloud option on Windows (not available)
+  if (isWin()) {
+    const icloudOpt = document.querySelector('#s-cloud option[value="icloud"]');
+    if (icloudOpt) icloudOpt.remove();
+  }
   settings=await window.electron.loadSettings();
   cloudPaths=await window.electron.detectCloudPaths();
   applyTheme(settings.darkMode||'system');
@@ -1301,16 +1334,18 @@ async function generateELAudio(){
 }
 
 async function generateMacTTSAudio(){
-  $('audio-source-label').textContent='Generating with macOS TTS…';
+  const ttsLabel = isMac() ? 'macOS built-in TTS' : 'Windows built-in TTS';
+  const fileExt = isMac() ? 'AIFF' : 'WAV';
+  $('audio-source-label').textContent=`Generating with ${ttsLabel}…`;
   const fullText=podScript.map(l=>`${l.speaker}: ${l.text}`).join('\n\n');
-  const result=await window.electron.macTTS(fullText);
+  const result=await window.electron.tts(fullText);
   if(!result.ok){$('audio-status').textContent='⚠️ TTS failed: '+result.error;$('audio-progress-bar').style.display='none';return;}
   podAudioUrl=result.fileUrl;
   podTTSFilePath=result.filePath;
   podAudioBlob=null;
-  setupPlayer(result.fileUrl,'macOS built-in TTS');
+  setupPlayer(result.fileUrl,ttsLabel);
   $('btn-export-audio').style.display='inline-flex';
-  $('btn-export-audio').textContent='💾 Save AIFF';
+  $('btn-export-audio').textContent=`💾 Save ${fileExt}`;
 }
 
 function setupPlayer(url,label){
