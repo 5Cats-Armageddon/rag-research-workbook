@@ -23,7 +23,7 @@
     "mac": {
       "category": "public.app-category.productivity",
       "target": ["dmg", "zip"],
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.icns",
       "notarize": false
     },
     "win": {
