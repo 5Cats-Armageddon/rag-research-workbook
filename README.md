@@ -1,4 +1,4 @@
-# NotebookAI v1.1.0
+# RAG Research Workbook v1.1.0
 
 A native macOS research assistant. Organise sources into projects, chat with strict source grounding, sync to iCloud/Dropbox/Google Drive/OneDrive, and run entirely free with local Ollama models.
 
@@ -13,7 +13,7 @@ A native macOS research assistant. Organise sources into projects, chat with str
 ### Run from source
 
 ```bash
-cd notebookai-app
+cd rag-research-workbook
 npm install
 npm start
 ```
@@ -24,7 +24,7 @@ npm start
 CSC_IDENTITY_AUTO_DISCOVERY=false npm run build
 ```
 
-Drag `dist/mac/NotebookAI.app` to `/Applications`.
+Drag `dist/mac/RAG Research Workbook.app` to `/Applications`.
 
 If macOS says "unidentified developer": right-click → Open → Open anyway.
 
@@ -69,16 +69,16 @@ Typical cost: ~$0.01–$0.05 per research session.
 1. Push your source to GitHub (or fork from the original repo)
 2. Clone it locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git ~/code/notebookai-app
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git ~/code/rag-research-workbook
    ```
 3. In Settings, fill in:
    - **GitHub username** — your GitHub handle
    - **Repository name** — the repo name
-   - **Local repo path** — e.g. `~/code/notebookai-app`
+   - **Local repo path** — e.g. `~/code/rag-research-workbook`
 
 ### Updating
 
-Click **Check for update** in the left rail (or NotebookAI menu → Check for Updates…).
+Click **Check for update** in the left rail (or RAG Research Workbook menu → Check for Updates…).
 
 The app will:
 1. Check GitHub for a newer version tag
@@ -142,7 +142,7 @@ With **Auto-sync** on, data is written on every change. The sync dot (●) in th
 ## Project Structure
 
 ```
-notebookai-app/
+rag-research-workbook/
 ├── package.json      # version, build config
 ├── src/
 │   ├── main.js       # Electron main process (Node.js, file I/O, shell commands)
@@ -161,11 +161,11 @@ Check the host field matches — default is `http://localhost:11434`
 
 **"App is damaged" on macOS**
 ```bash
-xattr -cr /Applications/NotebookAI.app
+xattr -cr /Applications/RAG Research Workbook.app
 ```
 
 **Update fails with "Repo path not found"**
 Make sure the path in Settings points to the folder containing `package.json`, not a parent folder.
 
 **git pull fails during update**
-You may have uncommitted local changes. In Terminal: `cd ~/code/notebookai-app && git stash && git pull`
+You may have uncommitted local changes. In Terminal: `cd ~/code/rag-research-workbook && git stash && git pull`

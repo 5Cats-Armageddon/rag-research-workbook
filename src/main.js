@@ -7,7 +7,7 @@ const { exec } = require('child_process');
 // ── Settings store ─────────────────────────────────────────────────────────
 const userDataPath = app.getPath('userData');
 const settingsPath = path.join(userDataPath, 'settings.json');
-const defaultDataPath = path.join(userDataPath, 'notebookai_data.json');
+const defaultDataPath = path.join(userDataPath, 'rag_research_workbook_data.json');
 
 function loadSettings() {
   try {
@@ -17,6 +17,7 @@ function loadSettings() {
   } catch (e) {}
   return {
     apiKey: '',
+    elevenlabsKey: '',
     aiProvider: 'anthropic',        // 'anthropic' | 'ollama'
     ollamaModel: 'llama3',
     ollamaHost: 'http://localhost:11434',
@@ -42,23 +43,23 @@ function saveSettings(s) {
 function detectCloudPaths() {
   const home = os.homedir();
   return {
-    icloud: path.join(home, 'Library', 'Mobile Documents', 'com~apple~CloudDocs', 'NotebookAI'),
+    icloud: path.join(home, 'Library', 'Mobile Documents', 'com~apple~CloudDocs', 'RAG Research Workbook'),
     dropbox: (() => {
       const dbInfo = path.join(home, '.dropbox', 'info.json');
       try {
         if (fs.existsSync(dbInfo)) {
           const info = JSON.parse(fs.readFileSync(dbInfo, 'utf8'));
           const p = (info.personal || info.business || {}).path;
-          if (p) return path.join(p, 'NotebookAI');
+          if (p) return path.join(p, 'RAG Research Workbook');
         }
       } catch(e) {}
-      return path.join(home, 'Dropbox', 'NotebookAI');
+      return path.join(home, 'Dropbox', 'RAG Research Workbook');
     })(),
     googledrive: (() => {
       const candidates = [
-        path.join(home, 'Google Drive', 'My Drive', 'NotebookAI'),
-        path.join(home, 'Library', 'CloudStorage', 'GoogleDrive-' + (process.env.USER || '') + '@gmail.com', 'My Drive', 'NotebookAI'),
-        '/Volumes/GoogleDrive/My Drive/NotebookAI'
+        path.join(home, 'Google Drive', 'My Drive', 'RAG Research Workbook'),
+        path.join(home, 'Library', 'CloudStorage', 'GoogleDrive-' + (process.env.USER || '') + '@gmail.com', 'My Drive', 'RAG Research Workbook'),
+        '/Volumes/GoogleDrive/My Drive/RAG Research Workbook'
       ];
       for (const c of candidates) {
         try { if (fs.existsSync(path.dirname(path.dirname(c)))) return c; } catch(e) {}
@@ -67,8 +68,8 @@ function detectCloudPaths() {
     })(),
     onedrive: (() => {
       const candidates = [
-        path.join(home, 'OneDrive', 'NotebookAI'),
-        path.join(home, 'Library', 'CloudStorage', 'OneDrive-Personal', 'NotebookAI')
+        path.join(home, 'OneDrive', 'RAG Research Workbook'),
+        path.join(home, 'Library', 'CloudStorage', 'OneDrive-Personal', 'RAG Research Workbook')
       ];
       for (const c of candidates) {
         try { if (fs.existsSync(path.dirname(c))) return c; } catch(e) {}
@@ -223,7 +224,7 @@ function fetchLatestRelease(owner, repo) {
   const https = require('https');
   return new Promise((resolve, reject) => {
     https.get(
-      { hostname: 'api.github.com', path: `/repos/${owner}/${repo}/releases/latest`, headers: { 'User-Agent': 'NotebookAI' } },
+      { hostname: 'api.github.com', path: `/repos/${owner}/${repo}/releases/latest`, headers: { 'User-Agent': 'RAG Research Workbook' } },
       res => {
         let body = '';
         res.on('data', d => body += d);
@@ -264,18 +265,18 @@ app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) creat
 function buildMenu() {
   const template = [
     {
-      label: 'NotebookAI',
+      label: 'RAG Research Workbook',
       submenu: [
-        { label: 'About NotebookAI', role: 'about' },
+        { label: 'About RAG Research Workbook', role: 'about' },
         { type: 'separator' },
         { label: 'Check for Updates…', click: () => mainWindow.webContents.send('open-updater') },
         { type: 'separator' },
         { label: 'Settings…', accelerator: 'Cmd+,', click: () => mainWindow.webContents.send('open-settings') },
         { type: 'separator' },
-        { label: 'Hide NotebookAI', role: 'hide' },
+        { label: 'Hide RAG Research Workbook', role: 'hide' },
         { label: 'Hide Others', role: 'hideOthers' },
         { type: 'separator' },
-        { label: 'Quit NotebookAI', role: 'quit' }
+        { label: 'Quit RAG Research Workbook', role: 'quit' }
       ]
     },
     {
@@ -362,6 +363,101 @@ ipcMain.handle('fetch-url-native', async (e, url) => {
   }
 });
 
+// Parse uploaded files from base64 buffer (PDF, DOCX, XLSX, PPTX, HTML, TXT, MD)
+ipcMain.handle('parse-file-from-buffer', async (e, fileName, base64) => {
+  const ext = path.extname(fileName).toLowerCase();
+  const buffer = Buffer.from(base64, 'base64');
+
+  try {
+    // ── Plain text formats ───────────────────────────────────────────────
+    if (ext === '.txt' || ext === '.md') {
+      const content = buffer.toString('utf8');
+      return { ok: true, content, type: ext.slice(1) };
+    }
+
+    // ── HTML ─────────────────────────────────────────────────────────────
+    if (ext === '.html' || ext === '.htm') {
+      const html = buffer.toString('utf8');
+      const { content } = htmlToText(html, fileName);
+      return { ok: true, content, type: 'html' };
+    }
+
+    // ── PDF ──────────────────────────────────────────────────────────────
+    if (ext === '.pdf') {
+      const pdfParse = require('pdf-parse');
+      const data = await pdfParse(buffer);
+      const content = data.text
+        .replace(/[ \t]{3,}/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      if (!content || content.length < 20) {
+        return { ok: false, error: 'No text found in this PDF. It may be a scanned image — try copying and pasting the text as a text source instead.' };
+      }
+      return { ok: true, content, type: 'pdf', pages: data.numpages };
+    }
+
+    // ── DOCX ─────────────────────────────────────────────────────────────
+    if (ext === '.docx' || ext === '.doc') {
+      const mammoth = require('mammoth');
+      const result = await mammoth.extractRawText({ buffer });
+      const content = result.value.trim();
+      if (!content) return { ok: false, error: 'No text found in this Word document.' };
+      return { ok: true, content, type: 'docx' };
+    }
+
+    // ── XLSX / XLS / CSV ─────────────────────────────────────────────────
+    if (ext === '.xlsx' || ext === '.xls' || ext === '.csv') {
+      const XLSX = require('xlsx');
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const lines = [];
+      workbook.SheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const csv = XLSX.utils.sheet_to_csv(sheet, { blankrows: false });
+        if (csv.trim()) {
+          lines.push(`--- Sheet: ${sheetName} ---`);
+          lines.push(csv.trim());
+        }
+      });
+      const content = lines.join('\n\n');
+      if (!content) return { ok: false, error: 'No data found in this spreadsheet.' };
+      return { ok: true, content, type: ext.slice(1) };
+    }
+
+    // ── PPTX / PPT via officeparser ───────────────────────────────────────
+    if (ext === '.pptx' || ext === '.ppt') {
+      // officeparser needs a temp file path
+      const tmpFile = path.join(os.tmpdir(), `rrw_${Date.now()}${ext}`);
+      fs.writeFileSync(tmpFile, buffer);
+      try {
+        const officeparser = require('officeparser');
+        const content = await new Promise((resolve, reject) => {
+          officeparser.parseOffice(tmpFile, (data, err) => {
+            if (err) reject(new Error(err));
+            else resolve(data);
+          });
+        });
+        fs.unlinkSync(tmpFile);
+        if (!content || !content.trim()) {
+          return { ok: false, error: 'No text found in this PowerPoint file.' };
+        }
+        return { ok: true, content: content.trim(), type: 'pptx' };
+      } catch(err) {
+        try { fs.unlinkSync(tmpFile); } catch(e) {}
+        throw err;
+      }
+    }
+
+    // ── Unsupported ──────────────────────────────────────────────────────
+    return {
+      ok: false,
+      error: `Unsupported file type: ${ext}\n\nSupported formats: PDF, DOCX, XLSX, XLS, CSV, PPTX, HTML, TXT, MD.\n\nAudio and video files are not supported — transcribe them externally and paste the transcript as a text source.`
+    };
+
+  } catch (err) {
+    return { ok: false, error: `Failed to parse ${fileName}: ${err.message}` };
+  }
+});
+
 // Check GitHub for latest version
 ipcMain.handle('check-for-update', async (e, { owner, repo }) => {
   try {
@@ -388,8 +484,30 @@ ipcMain.handle('run-update-b', async (e, { repoPath }) => {
     await runCommand('npm install', expanded, send);
     send('\n► npm run build\n');
     await runCommand('CSC_IDENTITY_AUTO_DISCOVERY=false npm run build', expanded, send);
-    send('\n► Copying NotebookAI.app to /Applications…\n');
-    await runCommand('cp -r dist/mac/NotebookAI.app /Applications/NotebookAI.app', expanded, send);
+    send('\n► Detecting Mac architecture…\n');
+    // Determine the correct electron-builder output folder for this machine
+    const arch = os.arch(); // 'arm64' (Apple Silicon) or 'x64' (Intel)
+    const distFolders = [`dist/mac-${arch}`, 'dist/mac', `dist/mac-universal`];
+    let appSrc = null;
+    for (const folder of distFolders) {
+      const candidate = path.join(expanded, folder, 'RAG Research Workbook.app');
+      if (fs.existsSync(candidate)) { appSrc = candidate; break; }
+    }
+    if (!appSrc) {
+      // Last resort: scan dist/ for any *.app
+      const distDir = path.join(expanded, 'dist');
+      const entries = fs.readdirSync(distDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const candidate = path.join(distDir, entry.name, 'RAG Research Workbook.app');
+          if (fs.existsSync(candidate)) { appSrc = candidate; break; }
+        }
+      }
+    }
+    if (!appSrc) throw new Error(`Could not find RAG Research Workbook.app in dist/. Tried: ${distFolders.join(', ')}`);
+    send(`► Found app at: ${appSrc}\n`);
+    send('\n► Copying RAG Research Workbook.app to /Applications…\n');
+    await runCommand(`cp -r "${appSrc}" "/Applications/RAG Research Workbook.app"`, expanded, send);
     send('\n✅ Update complete! Quit and reopen the app from /Applications to use the new version.\n');
     return { ok: true };
   } catch(err) {
@@ -409,6 +527,34 @@ ipcMain.handle('run-update-b', async (e, { repoPath }) => {
 //   }
 // });
 // ipcMain.handle('install-update', () => autoUpdater.quitAndInstall());
+
+// macOS TTS — generates audio using the built-in `say` command
+ipcMain.handle('mac-tts', async (e, text) => {
+  const tmpFile = path.join(os.tmpdir(), `rrw_tts_${Date.now()}.aiff`);
+  // Escape single quotes in text for shell safety
+  const escaped = text.replace(/'/g, "'\\''");
+  return new Promise(resolve => {
+    exec(`say -o '${tmpFile}' '${escaped}'`, (err) => {
+      if (err) { resolve({ ok: false, error: err.message }); return; }
+      resolve({ ok: true, filePath: tmpFile, fileUrl: `file://${tmpFile}` });
+    });
+  });
+});
+
+// Copy the TTS temp file to a user-chosen location
+ipcMain.handle('copy-tts-file', (e, src, dest) => {
+  try { fs.copyFileSync(src, dest); return { ok: true }; }
+  catch(err) { return { ok: false, error: err.message }; }
+});
+
+// Write file from base64 (for MP3 audio export)
+ipcMain.handle('write-file-base64', (e, filePath, b64) => {
+  try {
+    ensureDir(filePath);
+    fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
+    return { ok: true };
+  } catch(err) { return { ok: false, error: err.message }; }
+});
 
 // Ollama model list helper
 ipcMain.handle('list-ollama-models', async (e, host) => {

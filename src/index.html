@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NotebookAI</title>
+<title>RAG Research Workbook</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -15,6 +15,7 @@
   --green:#059669;--green-bg:#d1fae5;--green-border:#a7f3d0;
   --warn:#92400e;--warn-bg:#fef3c7;--warn-border:#fcd34d;
   --danger:#991b1b;--danger-bg:#fee2e2;--danger-border:#fca5a5;
+  --purple:#6d28d9;--purple-bg:#ede9fe;--purple-border:#c4b5fd;
   --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
   --r:8px;--rl:12px;
   --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
@@ -29,6 +30,7 @@ body.dark{
   --green:#34d399;--green-bg:#0d2b20;--green-border:#065f46;
   --warn:#fbbf24;--warn-bg:#2d2410;--warn-border:#78510a;
   --danger:#f87171;--danger-bg:#2d1010;--danger-border:#7b2020;
+  --purple:#a78bfa;--purple-bg:#2d1f5e;--purple-border:#5b3fa8;
 }
 body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:14px;line-height:1.5;transition:background .2s,color .2s}
 
@@ -43,10 +45,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 .ai-badge.anthropic{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
 .ai-badge.ollama{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
 .app{display:flex;height:calc(100vh - var(--titlebar))}
 
-/* Projects rail */
+/* Rail */
 .rail{width:210px;min-width:210px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .rail-top{padding:12px 12px 8px;border-bottom:1px solid var(--border)}
 .new-proj-btn{width:100%;padding:7px 10px;border-radius:var(--r);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .12s}
@@ -93,6 +94,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 
 /* Main */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Main tabs (Chat / Podcast) */
+.main-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 16px;gap:0;flex-shrink:0}
+.main-tab{padding:10px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;display:flex;align-items:center;gap:6px;font-family:var(--font)}
+.main-tab:hover{color:var(--text2)}
+.main-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.main-tab svg{width:13px;height:13px;stroke:currentColor}
+.tab-panel{flex:1;display:none;flex-direction:column;overflow:hidden}
+.tab-panel.active{display:flex}
+
+/* Chat */
 .chat-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px}
 .chat-title{font-size:13px;font-weight:500}
 .chat-sub{font-size:10px;color:var(--text3);margin-top:1px}
@@ -137,6 +149,60 @@ textarea#chat-input::placeholder{color:var(--text3)}
 .send{width:34px;height:34px;border-radius:9px;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
 .send:hover{background:#1e47cc}.send:disabled{background:var(--border);cursor:not-allowed}
 .send svg{width:14px;height:14px;stroke:white}
+
+/* ── Podcast tab ── */
+.podcast-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.podcast-top{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.podcast-config{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pod-field{display:flex;flex-direction:column;gap:3px}
+.pod-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;font-weight:500}
+.pod-select,.pod-input{border:1px solid var(--border2);border-radius:var(--r);padding:5px 8px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--surface2);outline:none;transition:border-color .12s}
+.pod-select:focus,.pod-input:focus{border-color:var(--accent);background:var(--surface)}
+.pod-select{cursor:pointer}
+.length-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.length-row input[type=range]{flex:1}
+.podcast-actions{display:flex;gap:8px;align-items:center}
+.pod-gen-btn{padding:7px 16px;border-radius:var(--r);border:none;background:var(--purple);color:white;font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s}
+.pod-gen-btn:hover{filter:brightness(1.1)}
+.pod-gen-btn:disabled{opacity:.5;cursor:not-allowed}
+.pod-gen-btn svg{width:13px;height:13px;stroke:white}
+.podcast-body{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.script-area{flex:1;overflow-y:auto;padding:16px}
+.script-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--text3)}
+.script-empty .se-icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.script-empty p{font-size:12px;max-width:260px;line-height:1.6}
+.script-line{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
+.script-speaker{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;white-space:nowrap;margin-top:2px;flex-shrink:0}
+.script-speaker.host1{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.script-speaker.host2{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+.script-speaker.narrator{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.script-text{font-size:13px;line-height:1.65;color:var(--text);flex:1;background:var(--surface2);border-radius:var(--r);padding:7px 10px;border:1px solid var(--border)}
+.script-text:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+
+/* Podcast audio player */
+.podcast-player{padding:12px 16px;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.player-controls{display:flex;align-items:center;gap:10px}
+.play-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--purple);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+.play-btn:hover{filter:brightness(1.1)}
+.play-btn:disabled{opacity:.4;cursor:not-allowed}
+.play-btn svg{width:13px;height:13px;fill:white;stroke:none}
+.progress-wrap{flex:1;display:flex;flex-direction:column;gap:3px}
+.progress-bar{width:100%;height:4px;background:var(--border);border-radius:2px;cursor:pointer;appearance:none;outline:none}
+.progress-bar::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:var(--purple);cursor:pointer}
+.time-label{font-size:10px;color:var(--text3);display:flex;justify-content:space-between}
+.player-actions{display:flex;gap:6px}
+.pod-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px}
+.pod-status.generating{color:var(--purple)}
+.pod-progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:2px}
+.pod-progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width .3s}
+
+/* Voice config row */
+.voice-config{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.voice-label{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:500}
+.voice-row{display:flex;gap:6px;align-items:center}
+.voice-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.voice-dot.h1{background:var(--accent)}
+.voice-dot.h2{background:var(--purple)}
 
 /* Source panel */
 .panel{width:290px;min-width:290px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;overflow:hidden}
@@ -206,8 +272,6 @@ select.field{cursor:pointer}
 .emoji-opt.selected{background:var(--accent-bg);border-color:var(--accent-border)}
 .confirm-modal{width:340px}
 .confirm-msg{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px}
-
-/* Provider toggle pill */
 .provider-toggle{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
 .provider-btn{flex:1;padding:8px 10px;border:none;background:transparent;font-family:var(--font);font-size:12px;color:var(--text2);cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;gap:2px}
 .provider-btn .pb-icon{font-size:16px}
@@ -216,24 +280,18 @@ select.field{cursor:pointer}
 .provider-btn.active.anthropic{background:var(--accent-bg);color:var(--accent)}
 .provider-btn.active.ollama{background:var(--green-bg);color:var(--green)}
 .provider-btn.active .pb-sub{color:inherit;opacity:.7}
-
-/* Update log terminal */
 .update-log{font-family:var(--mono);font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;height:220px;overflow-y:auto;white-space:pre-wrap;color:var(--text2);line-height:1.6;margin-bottom:10px}
-.update-log .ok{color:var(--green)}.update-log .err{color:var(--danger)}
-
-/* Ollama status */
 .ollama-status{font-size:11px;padding:5px 9px;border-radius:var(--r);display:inline-flex;align-items:center;gap:5px;margin-bottom:8px}
 .ollama-status.ok{background:var(--green-bg);color:var(--green)}
 .ollama-status.err{background:var(--danger-bg);color:var(--danger)}
 .ollama-status.checking{background:var(--surface2);color:var(--text3)}
-
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </style>
 </head>
 <body>
 
 <div class="titlebar">
-  <span class="app-name">NotebookAI</span>
+  <span class="app-name">RAG Research Workbook</span>
   <div class="sync-area">
     <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">—</span></div>
     <div class="ai-badge" id="ai-badge">—</div>
@@ -241,12 +299,11 @@ select.field{cursor:pointer}
 </div>
 
 <div class="app">
-  <!-- Projects rail -->
+  <!-- Rail -->
   <div class="rail">
     <div class="rail-top">
       <button class="new-proj-btn" onclick="openNewProject()" title="New Project (⌘N)">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        New project
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New project
       </button>
     </div>
     <div class="projects-list" id="projects-list"></div>
@@ -271,45 +328,137 @@ select.field{cursor:pointer}
     </div>
     <div class="sources-scroll" id="sources-list"></div>
     <button class="add-src-btn" onclick="openAddSource()" title="Add Source (⌘⇧A)">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Add source
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add source
     </button>
   </div>
 
-  <!-- Chat -->
+  <!-- Main area -->
   <div class="main">
-    <div class="chat-header">
-      <div style="flex:1">
-        <div class="chat-title" id="chat-title">Select a project</div>
-        <div class="chat-sub" id="chat-sub">Choose or create a project to get started</div>
-      </div>
-      <button class="hdr-btn" onclick="exportChatMd()" id="export-btn" style="display:none" title="Export Chat (⌘⇧E)">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export
+    <!-- Tab bar -->
+    <div class="main-tabs">
+      <button class="main-tab active" id="mt-chat" onclick="switchMainTab('chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat
       </button>
-      <button class="hdr-btn" onclick="clearChat()">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>Clear
+      <button class="main-tab" id="mt-podcast" onclick="switchMainTab('podcast')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M21.13 20.12a16 16 0 0 0-22.26 0M18.42 15.13a10.15 10.15 0 0 0-12.84 0"/></svg>Podcast
       </button>
     </div>
-    <div class="messages" id="messages">
-      <div class="proj-home">
-        <div class="proj-home-emoji">📚</div>
-        <h2>Welcome to NotebookAI</h2>
-        <p>Create a project to organise your sources and research conversations.</p>
-        <button class="btn btn-solid" onclick="openNewProject()">Create first project</button>
-      </div>
-    </div>
-    <div class="input-wrap" id="input-wrap" style="display:none">
-      <div class="quick-row" id="quick-row">
-        <button class="quick" onclick="sq('Summarize all my sources')">📄 Summarize</button>
-        <button class="quick" onclick="sq('What are the key themes across my sources?')">🔍 Key themes</button>
-        <button class="quick" onclick="sq('What questions do my sources raise?')">❓ Open questions</button>
-        <button class="quick" onclick="sq('Compare and contrast the main arguments')">⚖️ Compare</button>
-      </div>
-      <div class="input-row">
-        <textarea id="chat-input" placeholder="Ask anything about your sources… (Enter to send, Shift+Enter for new line)" rows="1" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
-        <button class="send" id="send-btn" onclick="sendMsg()" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+
+    <!-- Chat panel -->
+    <div class="tab-panel active" id="tp-chat">
+      <div class="chat-header">
+        <div style="flex:1">
+          <div class="chat-title" id="chat-title">Select a project</div>
+          <div class="chat-sub" id="chat-sub">Choose or create a project to get started</div>
+        </div>
+        <button class="hdr-btn" onclick="exportChatMd()" id="export-btn" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export
         </button>
+        <button class="hdr-btn" onclick="clearChat()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>Clear
+        </button>
+      </div>
+      <div class="messages" id="messages">
+        <div class="proj-home">
+          <div class="proj-home-emoji">📚</div>
+          <h2>Welcome to RAG Research Workbook</h2>
+          <p>Create a project to organise your sources and research conversations.</p>
+          <button class="btn btn-solid" onclick="openNewProject()">Create first project</button>
+        </div>
+      </div>
+      <div class="input-wrap" id="input-wrap" style="display:none">
+        <div class="quick-row" id="quick-row">
+          <button class="quick" onclick="sq('Summarize all my sources')">📄 Summarize</button>
+          <button class="quick" onclick="sq('What are the key themes across my sources?')">🔍 Key themes</button>
+          <button class="quick" onclick="sq('What questions do my sources raise?')">❓ Open questions</button>
+          <button class="quick" onclick="sq('Compare and contrast the main arguments')">⚖️ Compare</button>
+          <button class="quick" onclick="switchMainTab('podcast')">🎙️ Generate podcast</button>
+        </div>
+        <div class="input-row">
+          <textarea id="chat-input" placeholder="Ask anything about your sources… (Enter to send, Shift+Enter for new line)" rows="1" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+          <button class="send" id="send-btn" onclick="sendMsg()" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Podcast panel -->
+    <div class="tab-panel" id="tp-podcast">
+      <div class="podcast-panel">
+        <div class="podcast-top">
+          <div class="podcast-config">
+            <div class="pod-field">
+              <div class="pod-label">Format</div>
+              <select class="pod-select" id="pod-format">
+                <option value="two-host">Two hosts — discussion & debate</option>
+                <option value="narrator">Single narrator — summary</option>
+              </select>
+            </div>
+            <div class="pod-field">
+              <div class="pod-label">Target length</div>
+              <div class="length-row">
+                <input type="range" min="2" max="20" value="8" id="pod-length" oninput="$('pod-length-label').textContent=this.value+' min'">
+                <span id="pod-length-label" style="min-width:40px;text-align:right;font-size:12px;color:var(--text2)">8 min</span>
+              </div>
+            </div>
+          </div>
+          <div class="pod-field">
+            <div class="pod-label">Tone / style</div>
+            <input class="pod-input" type="text" id="pod-tone" placeholder="e.g. conversational and engaging, academic and rigorous, casual and fun…" value="conversational and engaging">
+          </div>
+          <div class="podcast-actions">
+            <button class="pod-gen-btn" id="pod-gen-btn" onclick="generateScript()">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Generate script
+            </button>
+            <div class="pod-status" id="pod-status"></div>
+          </div>
+        </div>
+
+        <!-- Voice config (shown when ElevenLabs key set) -->
+        <div class="voice-config" id="voice-config" style="display:none">
+          <div class="pod-field">
+            <div class="voice-label"><span class="voice-dot h1" style="display:inline-block;margin-right:4px"></span>Host 1 voice</div>
+            <select class="pod-select" id="voice-h1"></select>
+          </div>
+          <div class="pod-field" id="voice-h2-field">
+            <div class="voice-label"><span class="voice-dot h2" style="display:inline-block;margin-right:4px"></span>Host 2 voice</div>
+            <select class="pod-select" id="voice-h2"></select>
+          </div>
+        </div>
+
+        <div class="podcast-body">
+          <div class="script-area" id="script-area">
+            <div class="script-empty" id="script-empty">
+              <div class="se-icon">🎙️</div>
+              <p>Configure your podcast above, then click <strong>Generate script</strong> to create a podcast from your active sources.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio player (shown after audio generated) -->
+        <div class="podcast-player" id="podcast-player" style="display:none">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px" id="audio-source-label">—</div>
+          <div class="player-controls">
+            <button class="play-btn" id="play-btn" onclick="togglePlay()" disabled>
+              <svg id="play-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <div class="progress-wrap">
+              <input type="range" class="progress-bar" id="progress-bar" min="0" max="100" value="0" oninput="seekAudio(this.value)">
+              <div class="time-label"><span id="time-current">0:00</span><span id="time-total">0:00</span></div>
+            </div>
+          </div>
+          <div class="player-actions">
+            <button class="btn btn-ghost" onclick="generateAudio()" id="btn-gen-audio" style="font-size:11px;padding:5px 10px">🔊 Generate audio</button>
+            <button class="btn btn-ghost" onclick="exportScript()" style="font-size:11px;padding:5px 10px">📄 Export script</button>
+            <button class="btn btn-ghost" onclick="exportAudio()" id="btn-export-audio" style="font-size:11px;padding:5px 10px;display:none">💾 Save audio</button>
+          </div>
+          <div class="pod-progress-bar" id="audio-progress-bar" style="display:none">
+            <div class="pod-progress-fill" id="audio-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="pod-status" id="audio-status"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -322,27 +471,20 @@ select.field{cursor:pointer}
   </div>
 </div>
 
-<!-- ── Settings Modal ── -->
+<!-- Settings Modal -->
 <div class="overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
   <div class="modal" style="width:500px">
     <h3>⚙️ Settings</h3>
-
     <div class="modal-section">
       <div class="section-title">AI Provider</div>
       <div class="provider-toggle">
         <button class="provider-btn anthropic" id="pb-anthropic" onclick="selectProvider('anthropic')">
-          <span class="pb-icon">☁️</span>
-          <span class="pb-label">Anthropic</span>
-          <span class="pb-sub">Claude Sonnet 4 · Paid</span>
+          <span class="pb-icon">☁️</span><span class="pb-label">Anthropic</span><span class="pb-sub">Claude Sonnet 4 · Paid</span>
         </button>
         <button class="provider-btn ollama" id="pb-ollama" onclick="selectProvider('ollama')">
-          <span class="pb-icon">🦙</span>
-          <span class="pb-label">Ollama</span>
-          <span class="pb-sub">Local models · Free</span>
+          <span class="pb-icon">🦙</span><span class="pb-label">Ollama</span><span class="pb-sub">Local models · Free</span>
         </button>
       </div>
-
-      <!-- Anthropic fields -->
       <div id="anthropic-fields">
         <label class="lbl">Anthropic API key</label>
         <input class="field" type="password" id="s-api-key" placeholder="sk-ant-…">
@@ -350,8 +492,6 @@ select.field{cursor:pointer}
           Get your key at <a href="#" onclick="openExt('https://console.anthropic.com/settings/keys');return false" style="color:var(--accent)">console.anthropic.com</a> · Required for AI-assisted URL fetch and chat
         </div>
       </div>
-
-      <!-- Ollama fields -->
       <div id="ollama-fields" style="display:none">
         <div id="ollama-status" class="ollama-status checking">Checking Ollama…</div>
         <label class="lbl">Ollama host</label>
@@ -359,11 +499,18 @@ select.field{cursor:pointer}
         <label class="lbl">Model</label>
         <select class="field" id="s-ollama-model"></select>
         <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:4px">
-          Install Ollama at <a href="#" onclick="openExt('https://ollama.com');return false" style="color:var(--accent)">ollama.com</a> then run <code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px">ollama pull llama3</code>
+          Install at <a href="#" onclick="openExt('https://ollama.com');return false" style="color:var(--accent)">ollama.com</a> then run <code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px">ollama pull llama3</code>
         </div>
       </div>
     </div>
-
+    <div class="modal-section">
+      <div class="section-title">Podcast — ElevenLabs voices</div>
+      <label class="lbl">ElevenLabs API key <span style="color:var(--text3)">(optional — enables high-quality AI voices)</span></label>
+      <input class="field" type="password" id="s-el-key" placeholder="Your ElevenLabs API key…">
+      <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:0">
+        Get a free key at <a href="#" onclick="openExt('https://elevenlabs.io');return false" style="color:var(--accent)">elevenlabs.io</a> · Without this, macOS built-in TTS is used as a fallback (single voice, lower quality)
+      </div>
+    </div>
     <div class="modal-section">
       <div class="section-title">Cloud sync</div>
       <label class="lbl">Cloud service</label>
@@ -379,7 +526,7 @@ select.field{cursor:pointer}
       <div id="custom-path-row" style="display:none">
         <label class="lbl">Custom sync path</label>
         <div style="display:flex;gap:6px;margin-bottom:10px">
-          <input class="field" type="text" id="s-custom-path" placeholder="/path/to/notebookai_data.json" style="margin-bottom:0;flex:1">
+          <input class="field" type="text" id="s-custom-path" placeholder="/path/to/rag_research_workbook_data.json" style="margin-bottom:0;flex:1">
           <button class="btn btn-ghost" onclick="browseCustomPath()" style="white-space:nowrap;padding:6px 10px">Browse…</button>
         </div>
       </div>
@@ -388,21 +535,18 @@ select.field{cursor:pointer}
         <label class="toggle-switch"><input type="checkbox" id="s-autosync" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
       </div>
     </div>
-
     <div class="modal-section">
       <div class="section-title">Updates</div>
       <label class="lbl">GitHub username</label>
       <input class="field" type="text" id="s-gh-owner" placeholder="your-github-username">
       <label class="lbl">Repository name</label>
-      <input class="field" type="text" id="s-gh-repo" placeholder="notebookai">
-      <label class="lbl">Local repo path (for Option B updates)</label>
+      <input class="field" type="text" id="s-gh-repo" placeholder="rag-research-workbook">
+      <label class="lbl">Local repo path</label>
       <div style="display:flex;gap:6px;margin-bottom:4px">
-        <input class="field" type="text" id="s-repo-path" placeholder="~/code/notebookai-app" style="margin-bottom:0;flex:1">
+        <input class="field" type="text" id="s-repo-path" placeholder="~/code/rag-research-workbook" style="margin-bottom:0;flex:1">
         <button class="btn btn-ghost" onclick="browseRepoPath()" style="white-space:nowrap;padding:6px 10px">Browse…</button>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">The folder containing your cloned source code (where package.json lives)</div>
     </div>
-
     <div class="modal-section">
       <div class="section-title">Appearance</div>
       <label class="lbl">Theme</label>
@@ -412,7 +556,6 @@ select.field{cursor:pointer}
         <option value="dark">Dark</option>
       </select>
     </div>
-
     <div class="modal-section">
       <div class="section-title">Data</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -420,21 +563,15 @@ select.field{cursor:pointer}
         <button class="btn btn-ghost" onclick="importJSON()">📂 Import projects</button>
       </div>
     </div>
-
     <div class="modal-section">
       <div class="section-title">Keyboard shortcuts</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--text2)">
-        <div>New project<span class="kbd">⌘N</span></div>
-        <div>Add source<span class="kbd">⌘⇧A</span></div>
-        <div>Sync now<span class="kbd">⌘S</span></div>
-        <div>Settings<span class="kbd">⌘,</span></div>
-        <div>Export chat<span class="kbd">⌘⇧E</span></div>
-        <div>Toggle dark<span class="kbd">⌘⇧D</span></div>
-        <div>Send message<span class="kbd">↵</span></div>
-        <div>New line<span class="kbd">⇧↵</span></div>
+        <div>New project<span class="kbd">⌘N</span></div><div>Add source<span class="kbd">⌘⇧A</span></div>
+        <div>Sync now<span class="kbd">⌘S</span></div><div>Settings<span class="kbd">⌘,</span></div>
+        <div>Export chat<span class="kbd">⌘⇧E</span></div><div>Toggle dark<span class="kbd">⌘⇧D</span></div>
+        <div>Send message<span class="kbd">↵</span></div><div>New line<span class="kbd">⇧↵</span></div>
       </div>
     </div>
-
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
       <button class="btn btn-solid" onclick="saveSettingsFromModal()">Save settings</button>
@@ -442,31 +579,21 @@ select.field{cursor:pointer}
   </div>
 </div>
 
-<!-- ── Updater Modal ── -->
+<!-- Updater Modal -->
 <div class="overlay" id="updater-overlay" onclick="if(event.target===this)closeUpdater()">
   <div class="modal" style="width:480px">
     <h3>🔄 Check for updates</h3>
-    <div id="update-check-section">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px">
-        Current version: <strong id="current-version">—</strong>
-      </div>
-      <div id="update-status-box" class="status-box loading" style="display:none"></div>
-      <div id="update-info" style="display:none;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:500;margin-bottom:4px" id="update-headline"></div>
-        <div style="font-size:12px;color:var(--text2)" id="update-details"></div>
-      </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Current version: <strong id="current-version">—</strong></div>
+    <div id="update-status-box" class="status-box loading" style="display:none"></div>
+    <div id="update-info" style="display:none;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:500;margin-bottom:4px" id="update-headline"></div>
+      <div style="font-size:12px;color:var(--text2)" id="update-details"></div>
     </div>
-
     <div id="update-run-section" style="display:none">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">
-        Running update from <code style="font-family:var(--mono);font-size:11px;background:var(--surface2);padding:1px 4px;border-radius:3px" id="update-repo-path-display">—</code>
-      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Running update from <code style="font-family:var(--mono);font-size:11px;background:var(--surface2);padding:1px 4px;border-radius:3px" id="update-repo-path-display">—</code></div>
       <div class="update-log" id="update-log"></div>
-      <div id="update-done-msg" style="display:none;font-size:12px;color:var(--green);margin-bottom:8px;font-weight:500">
-        ✅ Update complete — quit and reopen NotebookAI from /Applications.
-      </div>
+      <div id="update-done-msg" style="display:none;font-size:12px;color:var(--green);margin-bottom:8px;font-weight:500">✅ Update complete — quit and reopen from /Applications.</div>
     </div>
-
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeUpdater()">Close</button>
       <button class="btn btn-solid" id="btn-check-update" onclick="checkForUpdate()">Check now</button>
@@ -522,9 +649,7 @@ select.field{cursor:pointer}
           <input type="radio" name="fetch-method" id="fm-ai" value="ai"> ☁️ AI-assisted (Anthropic key required)
         </label>
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:10px" id="fetch-method-note">
-        Native works for most articles and docs. Use AI-assisted for JavaScript-heavy pages (SPAs, paywalled content).
-      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:10px">Native works for most articles and docs. Use AI-assisted for JavaScript-heavy pages.</div>
       <div id="fetch-status" style="display:none"></div>
       <div id="url-preview" style="display:none">
         <label class="lbl">Source name</label>
@@ -536,10 +661,13 @@ select.field{cursor:pointer}
     <div id="pane-file" style="display:none">
       <div class="drop-zone" id="drop-zone" onclick="triggerFile()" ondragover="dov(event)" ondragleave="dol()" ondrop="dop(event)">
         <div class="di">📎</div><div>Drop a file or click to browse</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px">TXT and MD files supported</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">PDF · DOCX · XLSX · PPTX · HTML · TXT · MD</div>
       </div>
-      <input type="file" id="file-in" accept=".txt,.md" style="display:none" onchange="onFile(event)">
-      <div id="file-status" style="display:none;font-size:11px;color:var(--text2);padding:2px 0"></div>
+      <input type="file" id="file-in" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.html,.htm,.txt,.md" style="display:none" onchange="onFile(event)">
+      <div id="file-status" style="display:none;font-size:11px;padding:2px 0"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5;padding:7px 9px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border)">
+        ⚠️ <strong style="font-weight:500">Audio and video files are not supported.</strong> To use audio/video content, transcribe it externally and paste the transcript as a text source.
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeSrcModal()">Cancel</button>
@@ -573,22 +701,24 @@ let pendingFile=null, fetchedContent=null, fetchedUrl=null;
 let selEmoji='📚', editProjId=null, confirmCb=null, openDd=null;
 let settings={}, cloudPaths={};
 let ollamaCheckTimer=null;
+// Podcast state
+let podTTSFilePath=null; // track macOS TTS temp file path for export
+let podScript=[], podAudioBlob=null, podAudioUrl=null, audioEl=null;
+let elVoices=[];
 
 function getProj(){return projects.find(p=>p.id===activeId)}
 
 // ── Persistence ──────────────────────────────────────────
 async function saveAll(){
   const result=await window.electron.saveData({projects,activeId},settings.syncPath);
-  setSyncStatus(result.ok?'ok':'err', result.ok?'Saved':'Save failed');
+  setSyncStatus(result.ok?'ok':'err',result.ok?'Saved':'Save failed');
   return result.ok;
 }
 async function loadAll(){return window.electron.loadData(settings.syncPath)}
 function setSyncStatus(s,l){$('sync-dot').className='sync-dot '+s;$('sync-label').textContent=l}
 
-// ── AI badge ─────────────────────────────────────────────
 function updateAIBadge(){
-  const b=$('ai-badge');
-  const p=settings.aiProvider||'anthropic';
+  const b=$('ai-badge'), p=settings.aiProvider||'anthropic';
   b.className='ai-badge '+p;
   b.textContent=p==='ollama'?`🦙 ${settings.ollamaModel||'llama3'}`:'☁️ Claude';
 }
@@ -604,6 +734,8 @@ async function init(){
   buildEmojiGrid(); renderProjects();
   if(activeId&&getProj()) activateProject(activeId,false); else showHome();
   setSyncStatus('ok','Ready');
+  // Load ElevenLabs voices if key set
+  if(settings.elevenlabsKey) loadELVoices();
   window.electron.on('open-settings',()=>openSettings());
   window.electron.on('open-updater',()=>openUpdater());
   window.electron.on('new-project',()=>openNewProject());
@@ -613,8 +745,8 @@ async function init(){
   window.electron.on('import-json',()=>importJSON());
   window.electron.on('sync-now',()=>triggerSync());
   window.electron.on('toggle-dark-mode',()=>toggleDarkMode());
-  window.electron.on('dark-mode-changed',()=>{ if(settings.darkMode==='system') applyTheme('system'); });
-  window.electron.on('update-log', msg=>appendUpdateLog(msg));
+  window.electron.on('dark-mode-changed',()=>{if(settings.darkMode==='system') applyTheme('system');});
+  window.electron.on('update-log',msg=>appendUpdateLog(msg));
   document.addEventListener('click',e=>{if(openDd&&!e.target.closest('.proj-dropdown')&&!e.target.closest('.proj-menu-btn'))closeAllDd()});
 }
 
@@ -625,10 +757,17 @@ function applyTheme(m){
   else window.electron.getDarkMode().then(d=>document.body.classList.toggle('dark',d));
 }
 async function toggleDarkMode(){
-  const d=document.body.classList.contains('dark');
-  settings.darkMode=d?'light':'dark';
+  settings.darkMode=document.body.classList.contains('dark')?'light':'dark';
   applyTheme(settings.darkMode);
   await window.electron.saveSettings(settings);
+}
+
+// ── Main tab switch ──────────────────────────────────────
+function switchMainTab(tab){
+  ['chat','podcast'].forEach(t=>{
+    $(`mt-${t}`).classList.toggle('active',t===tab);
+    $(`tp-${t}`).classList.toggle('active',t===tab);
+  });
 }
 
 // ── Sync ─────────────────────────────────────────────────
@@ -638,11 +777,12 @@ async function triggerSync(){
   setSyncStatus(ok?'ok':'err',ok?'Synced':'Sync failed');
 }
 
-// ── Settings modal ───────────────────────────────────────
+// ── Settings ─────────────────────────────────────────────
 async function openSettings(){
   settings=await window.electron.loadSettings();
   cloudPaths=await window.electron.detectCloudPaths();
   $('s-api-key').value=settings.apiKey||'';
+  $('s-el-key').value=settings.elevenlabsKey||'';
   $('s-ollama-host').value=settings.ollamaHost||'http://localhost:11434';
   $('s-cloud').value=settings.cloudService||'local';
   $('s-autosync').checked=settings.autoSync!==false;
@@ -651,14 +791,14 @@ async function openSettings(){
   $('s-gh-owner').value=settings.githubOwner||'';
   $('s-gh-repo').value=settings.githubRepo||'';
   $('s-repo-path').value=settings.repoPath||'';
-  selectProvider(settings.aiProvider||'anthropic', false);
+  selectProvider(settings.aiProvider||'anthropic',false);
   updatePathDisplay();
   $('settings-overlay').classList.add('open');
   if((settings.aiProvider||'anthropic')==='ollama') checkOllamaStatus();
 }
 function closeSettings(){$('settings-overlay').classList.remove('open')}
 
-function selectProvider(p, checkOllama=true){
+function selectProvider(p,checkOllama=true){
   $('pb-anthropic').classList.toggle('active',p==='anthropic');
   $('pb-ollama').classList.toggle('active',p==='ollama');
   $('anthropic-fields').style.display=p==='anthropic'?'block':'none';
@@ -684,35 +824,28 @@ async function checkOllamaStatus(){
   }
 }
 
-function debouncedCheckOllama(){
-  clearTimeout(ollamaCheckTimer);
-  ollamaCheckTimer=setTimeout(checkOllamaStatus, 800);
-}
-
+function debouncedCheckOllama(){clearTimeout(ollamaCheckTimer);ollamaCheckTimer=setTimeout(checkOllamaStatus,800);}
 function onCloudChange(){updatePathDisplay();}
 function updatePathDisplay(){
   const svc=$('s-cloud').value;
   $('custom-path-row').style.display=svc==='custom'?'block':'none';
-  let p=svc==='custom'?($('s-custom-path').value||'—'):svc==='local'?cloudPaths.local:(cloudPaths[svc]||'—');
-  $('s-path-display').textContent=p;
+  $('s-path-display').textContent=svc==='custom'?($('s-custom-path').value||'—'):svc==='local'?cloudPaths.local:(cloudPaths[svc]||'—');
 }
-
 async function browseCustomPath(){
-  const r=await window.electron.showSaveDialog({title:'Choose sync file location',defaultPath:'notebookai_data.json',filters:[{name:'JSON',extensions:['json']}]});
+  const r=await window.electron.showSaveDialog({title:'Choose sync file location',defaultPath:'rag_research_workbook_data.json',filters:[{name:'JSON',extensions:['json']}]});
   if(!r.canceled&&r.filePath){$('s-custom-path').value=r.filePath;updatePathDisplay();}
 }
-
 async function browseRepoPath(){
-  const r=await window.electron.showOpenDialog({title:'Select your notebookai-app source folder',properties:['openDirectory']});
+  const r=await window.electron.showOpenDialog({title:'Select your source folder',properties:['openDirectory']});
   if(!r.canceled&&r.filePaths.length) $('s-repo-path').value=r.filePaths[0];
 }
-
 async function saveSettingsFromModal(){
   const svc=$('s-cloud').value;
   const provider=$('pb-ollama').classList.contains('active')?'ollama':'anthropic';
-  let syncPath=svc==='custom'?$('s-custom-path').value.trim():svc==='local'?cloudPaths.local:(cloudPaths[svc]||cloudPaths.local);
+  const syncPath=svc==='custom'?$('s-custom-path').value.trim():svc==='local'?cloudPaths.local:(cloudPaths[svc]||cloudPaths.local);
   settings={
     apiKey:$('s-api-key').value.trim(),
+    elevenlabsKey:$('s-el-key').value.trim(),
     aiProvider:provider,
     ollamaModel:$('s-ollama-model').value||'llama3',
     ollamaHost:$('s-ollama-host').value.trim()||'http://localhost:11434',
@@ -728,10 +861,11 @@ async function saveSettingsFromModal(){
   updateAIBadge();
   await window.electron.saveSettings(settings);
   closeSettings();
+  if(settings.elevenlabsKey) loadELVoices();
   await triggerSync();
 }
 
-// ── Updater modal ────────────────────────────────────────
+// ── Updater ──────────────────────────────────────────────
 async function openUpdater(){
   $('updater-overlay').classList.add('open');
   $('update-run-section').style.display='none';
@@ -744,13 +878,9 @@ async function openUpdater(){
   $('current-version').textContent=v||'unknown';
 }
 function closeUpdater(){$('updater-overlay').classList.remove('open')}
-
 async function checkForUpdate(){
   const owner=settings.githubOwner, repo=settings.githubRepo;
-  if(!owner||!repo){
-    showUpdateStatus('err','Set your GitHub username and repo in Settings → Updates first.');
-    return;
-  }
+  if(!owner||!repo){showUpdateStatus('err','Set your GitHub username and repo in Settings → Updates first.');return;}
   $('btn-check-update').disabled=true;
   showUpdateStatus('loading','Checking GitHub for updates…');
   const r=await window.electron.checkForUpdate({owner,repo});
@@ -760,27 +890,20 @@ async function checkForUpdate(){
   $('update-info').style.display='block';
   if(r.hasUpdate){
     $('update-headline').textContent=`🎉 Update available: v${r.latest}`;
-    $('update-details').textContent=`You have v${r.current}. Click "Install update" to download and build the new version.`;
+    $('update-details').textContent=`You have v${r.current}. Click "Install update" to build and install.`;
     $('btn-run-update').style.display='inline-flex';
   } else {
     $('update-headline').textContent=`✓ You're up to date (v${r.current})`;
-    $('update-details').textContent=`No newer version found on GitHub.`;
-    $('btn-run-update').style.display='none';
+    $('update-details').textContent='No newer version found on GitHub.';
   }
 }
-
 function showUpdateStatus(type,msg){
-  const el=$('update-status-box');
-  el.style.display='flex'; el.className=`status-box ${type}`;
+  const el=$('update-status-box');el.style.display='flex';el.className=`status-box ${type}`;
   el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);
 }
-
 async function runUpdate(){
   const repoPath=settings.repoPath;
-  if(!repoPath){
-    showUpdateStatus('err','Set your local repo path in Settings → Updates first.');
-    return;
-  }
+  if(!repoPath){showUpdateStatus('err','Set your local repo path in Settings → Updates first.');return;}
   $('btn-run-update').disabled=true;
   $('btn-check-update').style.display='none';
   $('update-info').style.display='none';
@@ -792,12 +915,7 @@ async function runUpdate(){
   $('btn-run-update').disabled=false;
   if(r.ok) $('update-done-msg').style.display='block';
 }
-
-function appendUpdateLog(msg){
-  const el=$('update-log');
-  el.textContent+=msg;
-  el.scrollTop=el.scrollHeight;
-}
+function appendUpdateLog(msg){const el=$('update-log');el.textContent+=msg;el.scrollTop=el.scrollHeight;}
 
 // ── Projects ─────────────────────────────────────────────
 function renderProjects(){
@@ -837,7 +955,7 @@ function showHome(){
   $('input-wrap').style.display='none';
   $('export-btn').style.display='none';
   $('sources-list').innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No project selected.</div>`;
-  $('messages').innerHTML=`<div class="proj-home"><div class="proj-home-emoji">📚</div><h2>Welcome to NotebookAI</h2><p>Create a project to organise your sources and research conversations.</p><button class="btn btn-solid" onclick="openNewProject()">Create first project</button></div>`;
+  $('messages').innerHTML=`<div class="proj-home"><div class="proj-home-emoji">📚</div><h2>Welcome to RAG Research Workbook</h2><p>Create a project to organise your sources and research conversations.</p><button class="btn btn-solid" onclick="openNewProject()">Create first project</button></div>`;
 }
 
 function openNewProject(){
@@ -847,7 +965,6 @@ function openNewProject(){
   updateEmojiGrid(); $('proj-overlay').classList.add('open');
   setTimeout(()=>$('proj-name-input').focus(),120);
 }
-
 function editProject(id){
   closeAllDd();
   const p=projects.find(x=>x.id===id); if(!p) return;
@@ -857,7 +974,6 @@ function editProject(id){
   updateEmojiGrid(); $('proj-overlay').classList.add('open');
   setTimeout(()=>$('proj-name-input').focus(),120);
 }
-
 async function saveProject(){
   const name=$('proj-name-input').value.trim(); if(!name){alert('Please enter a project name.');return;}
   const desc=$('proj-desc-input').value.trim();
@@ -872,7 +988,6 @@ async function saveProject(){
   if(settings.autoSync!==false) await saveAll();
   renderProjects(); closeProjModal();
 }
-
 async function dupProject(id){
   closeAllDd();
   const p=projects.find(x=>x.id===id); if(!p) return;
@@ -881,26 +996,18 @@ async function dupProject(id){
   if(settings.autoSync!==false) await saveAll();
   renderProjects();
 }
-
 function delProjectConfirm(id){
   closeAllDd();
   const p=projects.find(x=>x.id===id); if(!p) return;
   $('confirm-title').textContent='Delete project?';
   $('confirm-msg').textContent=`"${p.name}" and all its sources and chat history will be permanently deleted.`;
   $('confirm-action-btn').textContent='Delete';
-  confirmCb=async()=>{
-    projects=projects.filter(x=>x.id!==id);
-    if(activeId===id) showHome();
-    if(settings.autoSync!==false) await saveAll();
-    renderProjects(); closeConfirm();
-  };
+  confirmCb=async()=>{projects=projects.filter(x=>x.id!==id);if(activeId===id)showHome();if(settings.autoSync!==false)await saveAll();renderProjects();closeConfirm();};
   $('confirm-overlay').classList.add('open');
 }
-
 function closeProjModal(){$('proj-overlay').classList.remove('open')}
 function toggleDd(e,id){e.stopPropagation();const dd=$('dd-'+id),was=dd.classList.contains('open');closeAllDd();if(!was){dd.classList.add('open');openDd=id;}}
 function closeAllDd(){document.querySelectorAll('.proj-dropdown.open').forEach(d=>d.classList.remove('open'));openDd=null;}
-
 function buildEmojiGrid(){$('emoji-grid').innerHTML=EMOJIS.map(e=>`<div class="emoji-opt${e===selEmoji?' selected':''}" onclick="selectEmoji('${e}')">${e}</div>`).join('');}
 function updateEmojiGrid(){document.querySelectorAll('.emoji-opt').forEach(el=>el.classList.toggle('selected',el.textContent===selEmoji));}
 function selectEmoji(e){selEmoji=e;updateEmojiGrid();}
@@ -908,7 +1015,7 @@ function selectEmoji(e){selEmoji=e;updateEmojiGrid();}
 // ── Sources ──────────────────────────────────────────────
 function renderSources(){
   const p=getProj(), el=$('sources-list');
-  const ICONS={text:'📄',file:'📁',url:'🌐'};
+  const ICONS={text:'📄',file:'📁',url:'🌐',pdf:'📕',docx:'📝',doc:'📝',xlsx:'📊',xls:'📊',csv:'📊',pptx:'📋',ppt:'📋',html:'🌐',htm:'🌐',md:'📄'};
   if(!p||!p.sources.length){el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No sources yet.</div>`;return;}
   el.innerHTML=p.sources.map(s=>`
     <div class="source-item${s.on?' active':''}" onclick="viewSrc('${s.id}')">
@@ -917,25 +1024,20 @@ function renderSources(){
       <div class="src-toggle${s.on?' on':''}" onclick="toggleSrc(event,'${s.id}')"></div>
     </div>`).join('');
 }
-
 function toggleSrc(e,id){
-  e.stopPropagation(); const p=getProj(); if(!p) return;
-  const s=p.sources.find(x=>x.id===id);
-  if(s){s.on=!s.on; if(settings.autoSync!==false) saveAll(); renderSources(); updateStatus();}
+  e.stopPropagation();const p=getProj();if(!p)return;
+  const s=p.sources.find(x=>x.id===id);if(s){s.on=!s.on;if(settings.autoSync!==false)saveAll();renderSources();updateStatus();}
 }
-
 function viewSrc(id){
-  const p=getProj(); if(!p) return;
-  const s=p.sources.find(x=>x.id===id); if(!s) return;
-  $('panel-title').textContent=s.name; $('panel-body').textContent=s.content;
-  const pu=$('panel-url');
-  if(s.url){pu.style.display='block';pu.textContent=s.url;}else{pu.style.display='none';}
+  const p=getProj();if(!p)return;
+  const s=p.sources.find(x=>x.id===id);if(!s)return;
+  $('panel-title').textContent=s.name;$('panel-body').textContent=s.content;
+  const pu=$('panel-url');if(s.url){pu.style.display='block';pu.textContent=s.url;}else{pu.style.display='none';}
   $('panel').classList.add('open');
 }
 function closePanel(){$('panel').classList.remove('open')}
-
 function updateStatus(){
-  const p=getProj(); if(!p){$('chat-sub').textContent='No project selected';return;}
+  const p=getProj();if(!p){$('chat-sub').textContent='No project selected';return;}
   const n=p.sources.filter(s=>s.on).length;
   $('chat-sub').textContent=n?`${n} source${n>1?'s':''} active · strict grounding on`:'No sources active';
   updateSend();
@@ -943,108 +1045,70 @@ function updateStatus(){
 
 // ── Chat ─────────────────────────────────────────────────
 function renderHistory(){
-  const p=getProj(), el=$('messages');
+  const p=getProj(),el=$('messages');
   if(!p||!p.history.length){
     el.innerHTML=`<div class="empty-state"><div class="empty-icon">${p?p.emoji:'🔬'}</div><h3>${p?esc(p.name):'Research'}</h3><p>${p&&p.desc?esc(p.desc):'Add sources and ask questions.'}</p></div>`;
-    $('quick-row').style.display='flex'; return;
+    $('quick-row').style.display='flex';return;
   }
-  el.innerHTML=''; $('quick-row').style.display='none';
+  el.innerHTML='';$('quick-row').style.display='none';
   p.history.forEach(m=>addBubbleDom(m.role==='user'?'user':'ai',m.content,m.oos,m.provider));
   el.scrollTop=el.scrollHeight;
 }
-
-function updateSend(){
-  const p=getProj();
-  $('send-btn').disabled=!(p&&$('chat-input').value.trim()&&p.sources.some(s=>s.on));
-}
-
+function updateSend(){const p=getProj();$('send-btn').disabled=!(p&&$('chat-input').value.trim()&&p.sources.some(s=>s.on));}
 function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';updateSend();}
 function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
 function sq(t){const i=$('chat-input');i.value=t;resize(i);sendMsg();}
 
 async function sendMsg(){
-  const inp=$('chat-input'), text=inp.value.trim();
-  if(!text||busy) return;
+  const inp=$('chat-input'),text=inp.value.trim();
+  if(!text||busy)return;
   const provider=settings.aiProvider||'anthropic';
   if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings (⌘,).');openSettings();return;}
-  const p=getProj(); if(!p) return;
-  const active=p.sources.filter(s=>s.on); if(!active.length) return;
-
+  const p=getProj();if(!p)return;
+  const active=p.sources.filter(s=>s.on);if(!active.length)return;
   const el=$('messages');
-  if(el.querySelector('.empty-state,.proj-home')) el.innerHTML='';
+  if(el.querySelector('.empty-state,.proj-home'))el.innerHTML='';
   $('quick-row').style.display='none';
   addBubbleDom('user',text);
   p.history.push({role:'user',content:text});
   inp.value='';inp.style.height='auto';updateSend();
-
-  const tid=addThinking(); busy=true;
+  const tid=addThinking();busy=true;
   try {
-    let reply;
-    if(provider==='ollama'){
-      reply=await callOllama(active, p.history.filter(m=>m.role==='user'||m.role==='assistant'));
-    } else {
-      reply=await callAnthropic(active, p.history.filter(m=>m.role==='user'||m.role==='assistant'));
-    }
+    let reply=provider==='ollama'?await callOllama(active,p.history.filter(m=>m.role==='user'||m.role==='assistant')):await callAnthropic(active,p.history.filter(m=>m.role==='user'||m.role==='assistant'));
     removeThinking(tid);
     const oos=reply.startsWith('NOT_IN_SOURCES:');
     const clean=oos?reply.replace('NOT_IN_SOURCES:','').trim():reply;
     addBubbleDom('ai',clean,oos,provider);
     p.history.push({role:'assistant',content:clean,oos,provider});
-    if(settings.autoSync!==false) saveAll();
-  } catch(err){
-    removeThinking(tid);
-    addError(err.message);
-  }
-  busy=false; updateSend();
+    if(settings.autoSync!==false)saveAll();
+  } catch(err){removeThinking(tid);addError(err.message);}
+  busy=false;updateSend();
 }
 
-async function callAnthropic(active, messages){
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildPrompt(active),messages})
-  });
+async function callAnthropic(active,messages){
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildPrompt(active),messages})});
   const data=await resp.json();
-  if(data.error) throw new Error(data.error.message);
+  if(data.error)throw new Error(data.error.message);
   return data.content?.map(b=>b.text||'').join('')||'No response.';
 }
-
-async function callOllama(active, messages){
-  const host=settings.ollamaHost||'http://localhost:11434';
-  const model=settings.ollamaModel||'llama3';
-  const systemPrompt=buildPrompt(active);
-  // Ollama uses OpenAI-compatible /v1/chat/completions
-  const resp=await fetch(`${host}/v1/chat/completions`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      model,
-      messages:[{role:'system',content:systemPrompt},...messages],
-      stream:false
-    })
-  });
-  if(!resp.ok){
-    const t=await resp.text();
-    throw new Error(`Ollama error ${resp.status}: ${t}`);
-  }
+async function callOllama(active,messages){
+  const host=settings.ollamaHost||'http://localhost:11434',model=settings.ollamaModel||'llama3';
+  const resp=await fetch(`${host}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'system',content:buildPrompt(active)},...messages],stream:false})});
+  if(!resp.ok){const t=await resp.text();throw new Error(`Ollama error ${resp.status}: ${t}`);}
   const data=await resp.json();
   return data.choices?.[0]?.message?.content||'No response from Ollama.';
 }
-
 function buildPrompt(active){
   const blocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}"${s.url?` url="${s.url}"`:''}>\n${s.content}\n</source>`).join('\n\n');
-  return `You are a strict research assistant. Your only knowledge base is the sources provided below. Do not use any outside knowledge, training data, or general information beyond what is explicitly stated in these sources.\n\nRULES:\n1. Answer ONLY from the provided sources.\n2. Always cite the source name using [Source Name] when making a claim.\n3. If a question cannot be answered from the sources, respond with: "NOT_IN_SOURCES: [brief explanation]"\n4. No "generally speaking" unless from a source.\n5. If only part is covered, answer that and flag the rest.\n\nSources:\n\n${blocks}`;
+  return `You are a strict research assistant. Your only knowledge base is the sources below. Do not use outside knowledge.\n\nRULES:\n1. Answer ONLY from sources.\n2. Cite source name using [Source Name].\n3. If not in sources: "NOT_IN_SOURCES: [explanation]"\n4. No "generally speaking" unless from a source.\n5. If partially covered, answer that and flag the rest.\n\nSources:\n\n${blocks}`;
 }
-
 function addBubbleDom(role,text,oos=false,provider='anthropic'){
-  const el=$('messages'),d=document.createElement('div');
-  d.className=`message ${role}`;
-  const avatarClass=role==='ai'?(provider==='ollama'?'avatar ai ollama':'avatar ai'):'avatar user';
-  const avatarLabel=role==='ai'?(provider==='ollama'?'🦙':'AI'):'You';
-  d.innerHTML=`<div class="${avatarClass}">${avatarLabel}</div><div class="bubble${oos?' oos':''}">${role==='ai'?fmtAI(text,oos):'<p>'+esc(text)+'</p>'}</div>`;
+  const el=$('messages'),d=document.createElement('div');d.className=`message ${role}`;
+  const ac=role==='ai'?(provider==='ollama'?'avatar ai ollama':'avatar ai'):'avatar user';
+  const al=role==='ai'?(provider==='ollama'?'🦙':'AI'):'You';
+  d.innerHTML=`<div class="${ac}">${al}</div><div class="bubble${oos?' oos':''}">${role==='ai'?fmtAI(text,oos):'<p>'+esc(text)+'</p>'}</div>`;
   el.appendChild(d);el.scrollTop=el.scrollHeight;
 }
-
 function fmtAI(text,oos){
   const pre=oos?`<div class="oos-label">⚠️ Not found in sources</div>`:'';
   const html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -1052,71 +1116,284 @@ function fmtAI(text,oos){
     .replace(/`(.*?)`/g,'<code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px;font-size:11px">$1</code>')
     .replace(/\[([^\]]+)\]/g,'<span class="cite">📎 $1</span>')
     .split('\n\n').map(p=>{
-      if(p.startsWith('- ')||p.includes('\n- '))
-        return`<ul>${p.split('\n').filter(l=>l.trim()).map(l=>`<li>${l.replace(/^[-•]\s*/,'')}</li>`).join('')}</ul>`;
+      if(p.startsWith('- ')||p.includes('\n- '))return`<ul>${p.split('\n').filter(l=>l.trim()).map(l=>`<li>${l.replace(/^[-•]\s*/,'')}</li>`).join('')}</ul>`;
       return`<p>${p.replace(/\n/g,'<br>')}</p>`;
     }).join('');
   return pre+html;
 }
-
-function addThinking(){
-  const el=$('messages'),id='tk'+Date.now(),d=document.createElement('div');
-  d.className='message ai';d.id=id;
-  d.innerHTML=`<div class="avatar ai">AI</div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;
-  el.appendChild(d);el.scrollTop=el.scrollHeight;return id;
-}
+function addThinking(){const el=$('messages'),id='tk'+Date.now(),d=document.createElement('div');d.className='message ai';d.id=id;d.innerHTML=`<div class="avatar ai">AI</div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;el.appendChild(d);el.scrollTop=el.scrollHeight;return id;}
 function removeThinking(id){$(id)?.remove()}
 function addError(msg){const el=$('messages'),d=document.createElement('div');d.innerHTML=`<div class="err-bubble">⚠️ ${esc(msg)}</div>`;el.appendChild(d);el.scrollTop=el.scrollHeight;}
 function clearChat(){const p=getProj();if(!p)return;p.history=[];if(settings.autoSync!==false)saveAll();renderHistory();}
 
+// ── Podcast ──────────────────────────────────────────────
+async function generateScript(){
+  const p=getProj();
+  if(!p){alert('Please select a project first.');return;}
+  const active=p.sources.filter(s=>s.on);
+  if(!active.length){alert('Please activate at least one source in the sidebar.');return;}
+  const provider=settings.aiProvider||'anthropic';
+  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings.');openSettings();return;}
+
+  const format=$('pod-format').value;
+  const length=$('pod-length').value;
+  const tone=$('pod-tone').value||'conversational and engaging';
+  const isTwoHost=format==='two-host';
+
+  $('pod-gen-btn').disabled=true;
+  setPodStatus('generating','Generating script…');
+
+  const sourceBlocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}">\n${s.content.slice(0,4000)}\n</source>`).join('\n\n');
+
+  const prompt=isTwoHost
+    ?`You are a podcast script writer. Create a two-host podcast script based ONLY on the provided sources. 
+
+Format: Return ONLY a JSON array of lines, no other text. Each line: {"speaker":"Host1","text":"..."} or {"speaker":"Host2","text":"..."}
+
+Guidelines:
+- Tone: ${tone}
+- Target: approximately ${length} minutes of spoken content (~${parseInt(length)*130} words)
+- The hosts should discuss, debate, and explore ideas from the sources
+- Host1 tends to introduce topics and ask questions; Host2 tends to analyse and provide deeper insight
+- Include natural transitions, follow-up questions, and moments of agreement/disagreement
+- Start with a brief intro, end with a summary and sign-off
+- Base EVERYTHING on the sources — do not invent facts
+
+Sources:\n\n${sourceBlocks}`
+    :`You are a podcast script writer. Create a single-narrator podcast script based ONLY on the provided sources.
+
+Format: Return ONLY a JSON array of lines, no other text. Each line: {"speaker":"Narrator","text":"..."}
+
+Guidelines:
+- Tone: ${tone}
+- Target: approximately ${length} minutes of spoken content (~${parseInt(length)*130} words)
+- Structure: intro, main content organised by theme, conclusion
+- Base EVERYTHING on the sources — do not invent facts
+
+Sources:\n\n${sourceBlocks}`;
+
+  try {
+    let raw;
+    if(provider==='anthropic'){
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})});
+      const data=await resp.json();
+      if(data.error)throw new Error(data.error.message);
+      raw=data.content?.map(b=>b.text||'').join('')||'';
+    } else {
+      const host=settings.ollamaHost||'http://localhost:11434',model=settings.ollamaModel||'llama3';
+      const resp=await fetch(`${host}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:false})});
+      const data=await resp.json();
+      raw=data.choices?.[0]?.message?.content||'';
+    }
+
+    // Parse JSON from response
+    const jm=raw.match(/\[[\s\S]*\]/);
+    if(!jm)throw new Error('Could not parse script — try again');
+    podScript=JSON.parse(jm[0]);
+    if(!podScript.length)throw new Error('Script was empty');
+
+    renderScript();
+    $('podcast-player').style.display='block';
+    setPodStatus('','Script ready — review, edit, then generate audio');
+
+    // Show voice config if ElevenLabs key set
+    if(settings.elevenlabsKey&&elVoices.length){
+      $('voice-config').style.display='grid';
+      $('voice-h2-field').style.display=isTwoHost?'flex':'none';
+    }
+
+  } catch(err){
+    setPodStatus('err','Error: '+err.message);
+  }
+  $('pod-gen-btn').disabled=false;
+}
+
+function renderScript(){
+  const area=$('script-area');
+  $('script-empty').style.display='none';
+  area.innerHTML='';
+  podScript.forEach((line,i)=>{
+    const spk=line.speaker||'Narrator';
+    const cls=spk==='Host1'?'host1':spk==='Host2'?'host2':'narrator';
+    const div=document.createElement('div');div.className='script-line';
+    div.innerHTML=`<div class="script-speaker ${cls}">${esc(spk)}</div><div class="script-text" contenteditable="true" data-i="${i}">${esc(line.text)}</div>`;
+    area.appendChild(div);
+  });
+  // Sync edits back to podScript
+  area.querySelectorAll('.script-text').forEach(el=>{
+    el.addEventListener('blur',()=>{podScript[parseInt(el.dataset.i)].text=el.textContent;});
+  });
+}
+
+function setPodStatus(type,msg){
+  const el=$('pod-status');
+  el.className=`pod-status${type==='generating'?' generating':''}`;
+  el.textContent=msg;
+}
+
+// ── ElevenLabs ───────────────────────────────────────────
+async function loadELVoices(){
+  try {
+    const resp=await fetch('https://api.elevenlabs.io/v1/voices',{headers:{'xi-api-key':settings.elevenlabsKey}});
+    const data=await resp.json();
+    elVoices=(data.voices||[]).map(v=>({id:v.voice_id,name:v.name}));
+    ['voice-h1','voice-h2'].forEach(id=>{
+      const sel=$(id); sel.innerHTML='';
+      elVoices.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.name;sel.appendChild(o);});
+    });
+    // Default: pick different voices for the two hosts
+    if(elVoices.length>1) $('voice-h2').selectedIndex=1;
+  } catch(e){elVoices=[];}
+}
+
+async function generateAudio(){
+  if(!podScript.length){alert('Generate a script first.');return;}
+  const hasEL=settings.elevenlabsKey&&elVoices.length;
+
+  $('btn-gen-audio').disabled=true;
+  $('audio-progress-bar').style.display='block';
+  $('audio-status').textContent='';
+  $('play-btn').disabled=true;
+  $('btn-export-audio').style.display='none';
+
+  if(hasEL){
+    await generateELAudio();
+  } else {
+    await generateMacTTSAudio();
+  }
+  $('btn-gen-audio').disabled=false;
+}
+
+async function generateELAudio(){
+  const h1Voice=$('voice-h1').value;
+  const h2Voice=$('voice-h2').value;
+  const chunks=[];
+  let done=0;
+
+  $('audio-source-label').textContent='Generating with ElevenLabs…';
+
+  for(const line of podScript){
+    const voiceId=line.speaker==='Host2'?h2Voice:h1Voice;
+    try {
+      const resp=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','xi-api-key':settings.elevenlabsKey},
+        body:JSON.stringify({text:line.text,model_id:'eleven_multilingual_v2',voice_settings:{stability:0.5,similarity_boost:0.75}})
+      });
+      if(!resp.ok)throw new Error(`ElevenLabs error ${resp.status}`);
+      const buf=await resp.arrayBuffer();
+      chunks.push(new Uint8Array(buf));
+    } catch(e){
+      $('audio-status').textContent=`⚠️ Line failed: ${e.message}`;
+    }
+    done++;
+    $('audio-progress-fill').style.width=`${Math.round(done/podScript.length*100)}%`;
+  }
+
+  // Concatenate all MP3 chunks
+  const total=chunks.reduce((a,c)=>a+c.length,0);
+  const merged=new Uint8Array(total);
+  let offset=0;
+  chunks.forEach(c=>{merged.set(c,offset);offset+=c.length;});
+  podAudioBlob=new Blob([merged],{type:'audio/mpeg'});
+  podAudioUrl=URL.createObjectURL(podAudioBlob);
+  setupPlayer(podAudioUrl,'ElevenLabs AI voices');
+}
+
+async function generateMacTTSAudio(){
+  $('audio-source-label').textContent='Generating with macOS TTS…';
+  const fullText=podScript.map(l=>`${l.speaker}: ${l.text}`).join('\n\n');
+  const result=await window.electron.macTTS(fullText);
+  if(!result.ok){$('audio-status').textContent='⚠️ TTS failed: '+result.error;$('audio-progress-bar').style.display='none';return;}
+  podAudioUrl=result.fileUrl;
+  podTTSFilePath=result.filePath;
+  podAudioBlob=null;
+  setupPlayer(result.fileUrl,'macOS built-in TTS');
+  $('btn-export-audio').style.display='inline-flex';
+  $('btn-export-audio').textContent='💾 Save AIFF';
+}
+
+function setupPlayer(url,label){
+  $('audio-source-label').textContent=label;
+  $('audio-progress-bar').style.display='none';
+  $('play-btn').disabled=false;
+  $('btn-export-audio').style.display=podAudioBlob?'inline-flex':'none';
+  if(audioEl){audioEl.pause();URL.revokeObjectURL(audioEl._blobUrl);}
+  audioEl=new Audio(url); audioEl._blobUrl=url;
+  audioEl.addEventListener('timeupdate',()=>{
+    const pct=audioEl.duration?(audioEl.currentTime/audioEl.duration*100):0;
+    $('progress-bar').value=pct;
+    $('time-current').textContent=fmtTime(audioEl.currentTime);
+    $('time-total').textContent=fmtTime(audioEl.duration||0);
+  });
+  audioEl.addEventListener('ended',()=>{$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';});
+  $('audio-status').textContent='Audio ready!';
+}
+
+function togglePlay(){
+  if(!audioEl)return;
+  if(audioEl.paused){audioEl.play();$('play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}
+  else{audioEl.pause();$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';}
+}
+
+function seekAudio(val){if(audioEl&&audioEl.duration)audioEl.currentTime=audioEl.duration*(val/100);}
+function fmtTime(s){if(isNaN(s))return'0:00';const m=Math.floor(s/60);return`${m}:${String(Math.floor(s%60)).padStart(2,'0')}`;}
+
+async function exportScript(){
+  if(!podScript.length){alert('No script to export.');return;}
+  let txt=podScript.map(l=>`${l.speaker}:\n${l.text}`).join('\n\n');
+  const r=await window.electron.showSaveDialog({defaultPath:'podcast_script.txt',filters:[{name:'Text',extensions:['txt']},{name:'Markdown',extensions:['md']}]});
+  if(!r.canceled&&r.filePath) await window.electron.writeFile(r.filePath,txt);
+}
+
+async function exportAudio(){
+  if(!podAudioBlob&&!podTTSFilePath){alert('No audio to export.');return;}
+  const ext=podAudioBlob?'mp3':'aiff';
+  const r=await window.electron.showSaveDialog({defaultPath:`podcast.${ext}`,filters:[{name:ext.toUpperCase(),extensions:[ext]}]});
+  if(r.canceled||!r.filePath)return;
+  if(podAudioBlob){
+    const ab=await podAudioBlob.arrayBuffer();
+    const b64=btoa(String.fromCharCode(...new Uint8Array(ab)));
+    await window.electron.writeFileBase64(r.filePath,b64);
+  } else {
+    await window.electron.copyTTSFile(podTTSFilePath,r.filePath);
+  }
+}
+
 // ── Export / Import ──────────────────────────────────────
 async function exportChatMd(){
-  const p=getProj(); if(!p||!p.history.length){alert('No chat history to export.');return;}
+  const p=getProj();if(!p||!p.history.length){alert('No chat history to export.');return;}
   let md=`# ${p.name} — Chat Export\n\n_Exported ${new Date().toLocaleString()}_\n\n---\n\n`;
-  p.history.forEach(m=>{
-    if(m.role==='user') md+=`**You:** ${m.content}\n\n`;
-    else md+=`**NotebookAI:** ${m.content}\n\n`;
-  });
+  p.history.forEach(m=>{md+=m.role==='user'?`**You:** ${m.content}\n\n`:`**RAG Research Workbook:** ${m.content}\n\n`;});
   const r=await window.electron.showSaveDialog({defaultPath:`${p.name.replace(/[^a-z0-9]/gi,'_')}_chat.md`,filters:[{name:'Markdown',extensions:['md']},{name:'Text',extensions:['txt']}]});
-  if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,md);if(!res.ok) alert('Export failed: '+res.error);}
+  if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,md);if(!res.ok)alert('Export failed: '+res.error);}
 }
-
 async function exportJSON(){
-  const r=await window.electron.showSaveDialog({defaultPath:`notebookai_backup_${new Date().toISOString().slice(0,10)}.json`,filters:[{name:'JSON',extensions:['json']}]});
-  if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,JSON.stringify({projects,exportedAt:new Date().toISOString()},null,2));if(!res.ok) alert('Export failed: '+res.error);}
+  const r=await window.electron.showSaveDialog({defaultPath:`rag_workbook_backup_${new Date().toISOString().slice(0,10)}.json`,filters:[{name:'JSON',extensions:['json']}]});
+  if(!r.canceled&&r.filePath)await window.electron.writeFile(r.filePath,JSON.stringify({projects,exportedAt:new Date().toISOString()},null,2));
 }
-
 async function exportProjectJSON(id){
-  closeAllDd();
-  const p=projects.find(x=>x.id===id); if(!p) return;
+  closeAllDd();const p=projects.find(x=>x.id===id);if(!p)return;
   const r=await window.electron.showSaveDialog({defaultPath:`${p.name.replace(/[^a-z0-9]/gi,'_')}_export.json`,filters:[{name:'JSON',extensions:['json']}]});
-  if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,JSON.stringify({projects:[p],exportedAt:new Date().toISOString()},null,2));if(!res.ok) alert('Export failed: '+res.error);}
+  if(!r.canceled&&r.filePath)await window.electron.writeFile(r.filePath,JSON.stringify({projects:[p],exportedAt:new Date().toISOString()},null,2));
 }
-
 async function importJSON(){
   const r=await window.electron.showOpenDialog({filters:[{name:'JSON',extensions:['json']}],properties:['openFile']});
-  if(r.canceled||!r.filePaths.length) return;
+  if(r.canceled||!r.filePaths.length)return;
   const res=await window.electron.readFile(r.filePaths[0]);
   if(!res.ok){alert('Could not read file: '+res.error);return;}
   try {
-    const data=JSON.parse(res.content);
-    const imported=data.projects||[];
-    if(!imported.length){alert('No projects found in file.');return;}
+    const data=JSON.parse(res.content);const imported=data.projects||[];
+    if(!imported.length){alert('No projects found.');return;}
     $('confirm-title').textContent='Import projects?';
-    $('confirm-msg').textContent=`Import ${imported.length} project${imported.length!==1?'s':''} from file? Projects with duplicate IDs will be skipped.`;
+    $('confirm-msg').textContent=`Import ${imported.length} project${imported.length!==1?'s':''}? Duplicate IDs will be skipped.`;
     $('confirm-action-btn').textContent='Import';
-    confirmCb=async()=>{
-      let added=0;
-      imported.forEach(p=>{if(!projects.find(x=>x.id===p.id)){projects.push(p);added++;}});
-      if(settings.autoSync!==false) await saveAll();
-      renderProjects(); closeConfirm();
-      alert(`Imported ${added} project${added!==1?'s':''}.`);
-    };
+    confirmCb=async()=>{let added=0;imported.forEach(p=>{if(!projects.find(x=>x.id===p.id)){projects.push(p);added++;}});if(settings.autoSync!==false)await saveAll();renderProjects();closeConfirm();alert(`Imported ${added} project${added!==1?'s':''}.`);};
     $('confirm-overlay').classList.add('open');
   } catch(e){alert('Invalid JSON file.');}
 }
 
-// ── Add source modal ─────────────────────────────────────
+// ── Add source ───────────────────────────────────────────
 function openAddSource(){
   if(!getProj()){alert('Please select a project first.');return;}
   $('src-name').value='';$('src-text').value='';$('url-in').value='';
@@ -1128,62 +1405,33 @@ function closeSrcModal(){$('src-overlay').classList.remove('open')}
 function switchTab(tab,btn){curTab=tab;['text','url','file'].forEach(t=>{$('t-'+t).classList.toggle('on',t===tab);$('pane-'+t).style.display=t===tab?'block':'none';});}
 
 async function doFetch(){
-  const url=$('url-in').value.trim(); if(!url) return;
-  if(!url.startsWith('http://') && !url.startsWith('https://')){showFetch('err','Please enter a valid URL starting with https://');return;}
-
+  const url=$('url-in').value.trim();if(!url)return;
+  if(!url.startsWith('http://')&&!url.startsWith('https://')){showFetch('err','Please enter a valid URL starting with https://');return;}
   const method=document.querySelector('input[name="fetch-method"]:checked')?.value||'native';
-
-  if(method==='ai'){
-    if(!settings.apiKey){alert('AI-assisted fetch requires an Anthropic API key. Set it in Settings (⌘,), or use the Native method instead.');return;}
-    await doFetchAI(url);
-  } else {
-    await doFetchNative(url);
-  }
+  if(method==='ai'){if(!settings.apiKey){alert('AI-assisted fetch requires an Anthropic API key.');return;}await doFetchAI(url);}
+  else await doFetchNative(url);
 }
-
 async function doFetchNative(url){
-  showFetch('loading','Fetching page…');
-  $('fetch-btn').disabled=true; $('url-preview').style.display='none';
-  fetchedContent=null;fetchedUrl=null;
-  const r=await window.electron.fetchUrlNative(url);
-  $('fetch-btn').disabled=false;
-  if(!r.ok){showFetch('err',r.error);fetchedContent=null;return;}
-  fetchedContent=r.content; fetchedUrl=url;
-  $('url-name').value=r.title;
-  $('url-body').value=r.content;
-  $('char-ct').textContent=r.content.length.toLocaleString()+' chars';
-  $('url-preview').style.display='block';
-  showFetch('ok',`✓ ${r.content.length.toLocaleString()} characters extracted (native)`);
+  showFetch('loading','Fetching page…');$('fetch-btn').disabled=true;$('url-preview').style.display='none';fetchedContent=null;fetchedUrl=null;
+  const r=await window.electron.fetchUrlNative(url);$('fetch-btn').disabled=false;
+  if(!r.ok){showFetch('err',r.error);return;}
+  fetchedContent=r.content;fetchedUrl=url;
+  $('url-name').value=r.title;$('url-body').value=r.content;$('char-ct').textContent=r.content.length.toLocaleString()+' chars';
+  $('url-preview').style.display='block';showFetch('ok',`✓ ${r.content.length.toLocaleString()} characters extracted (native)`);
 }
-
 async function doFetchAI(url){
-  showFetch('loading','Fetching with AI…');
-  $('fetch-btn').disabled=true; $('url-preview').style.display='none';
-  fetchedContent=null;fetchedUrl=null;
+  showFetch('loading','Fetching with AI…');$('fetch-btn').disabled=true;$('url-preview').style.display='none';fetchedContent=null;fetchedUrl=null;
   try {
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],
-        system:`You are a content extractor. Use web search to retrieve content from the URL the user provides. Return ONLY a JSON object — no markdown, no explanation:\n{"title": "page title", "content": "full extracted text, cleaned of HTML/navigation/ads"}`,
-        messages:[{role:'user',content:`Fetch and extract content from: ${url}`}]})
-    });
-    const data=await res.json();
-    if(data.error) throw new Error(data.error.message);
-    const txt=(data.content||[]).map(b=>b.text||'').join('');
-    const jm=txt.match(/\{[\s\S]*\}/); if(!jm) throw new Error('Could not parse page content');
-    const parsed=JSON.parse(jm[0]);
-    if(!parsed.content||parsed.content.length<50) throw new Error('Page content too short or inaccessible');
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],system:`You are a content extractor. Return ONLY JSON: {"title":"page title","content":"full text"}`,messages:[{role:'user',content:`Fetch: ${url}`}]})});
+    const data=await resp.json();if(data.error)throw new Error(data.error.message);
+    const txt=(data.content||[]).map(b=>b.text||'').join('');const jm=txt.match(/\{[\s\S]*\}/);if(!jm)throw new Error('Could not parse');
+    const parsed=JSON.parse(jm[0]);if(!parsed.content||parsed.content.length<50)throw new Error('Too short');
     fetchedContent=parsed.content;fetchedUrl=url;
-    $('url-name').value=parsed.title||new URL(url).hostname;
-    $('url-body').value=parsed.content;
-    $('char-ct').textContent=parsed.content.length.toLocaleString()+' chars';
-    $('url-preview').style.display='block';
-    showFetch('ok',`✓ ${parsed.content.length.toLocaleString()} characters extracted (AI-assisted)`);
-  } catch(err){showFetch('err','Failed: '+err.message);fetchedContent=null;}
+    $('url-name').value=parsed.title||new URL(url).hostname;$('url-body').value=parsed.content;$('char-ct').textContent=parsed.content.length.toLocaleString()+' chars';
+    $('url-preview').style.display='block';showFetch('ok',`✓ ${parsed.content.length.toLocaleString()} chars (AI-assisted)`);
+  } catch(err){showFetch('err','Failed: '+err.message);}
   $('fetch-btn').disabled=false;
 }
-
 function showFetch(type,msg){const el=$('fetch-status');el.style.display='flex';el.className=`status-box ${type}`;el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);}
 
 function triggerFile(){$('file-in').click()}
@@ -1191,23 +1439,25 @@ function dov(e){e.preventDefault();$('drop-zone').classList.add('drag')}
 function dol(){$('drop-zone').classList.remove('drag')}
 function dop(e){e.preventDefault();dol();const f=e.dataTransfer.files[0];if(f)loadFile(f)}
 function onFile(e){const f=e.target.files[0];if(f)loadFile(f)}
-function loadFile(file){const r=new FileReader();r.onload=e=>{pendingFile={name:file.name.replace(/\.[^.]+$/,''),content:e.target.result};const s=$('file-status');s.style.display='block';s.textContent=`✓ ${file.name} loaded (${Math.round(e.target.result.length/1024)}KB)`;};r.readAsText(file);}
+
+async function loadFile(file){
+  const s=$('file-status');s.style.display='block';s.style.color='var(--text2)';s.textContent=`Parsing ${file.name}…`;pendingFile=null;
+  const b64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>resolve(e.target.result.split(',')[1]);r.onerror=reject;r.readAsDataURL(file);});
+  const result=await window.electron.parseFileFromBuffer(file.name,b64);
+  if(!result.ok){s.style.color='var(--danger)';s.textContent=`⚠️ ${result.error}`;return;}
+  pendingFile={name:file.name.replace(/\.[^.]+$/,''),content:result.content};
+  s.style.color='var(--green)';
+  s.textContent=`✓ ${file.name} — ${result.content.length.toLocaleString()} chars${result.pages?' · '+result.pages+' pages':''}`;
+}
 
 async function addSrc(){
-  const p=getProj(); if(!p) return;
+  const p=getProj();if(!p)return;
   let name,content,url=null,type='text';
-  if(curTab==='text'){
-    name=$('src-name').value.trim()||'Untitled source';
-    content=$('src-text').value.trim(); if(!content){alert('Please paste some text.');return;}
-  } else if(curTab==='url'){
-    if(!fetchedContent){alert('Please fetch a URL first.');return;}
-    name=$('url-name').value.trim()||'Web source';content=fetchedContent;url=fetchedUrl;type='url';
-  } else {
-    if(!pendingFile){alert('Please select a file.');return;}
-    name=pendingFile.name;content=pendingFile.content;type='file';
-  }
+  if(curTab==='text'){name=$('src-name').value.trim()||'Untitled';content=$('src-text').value.trim();if(!content){alert('Please paste some text.');return;}}
+  else if(curTab==='url'){if(!fetchedContent){alert('Please fetch a URL first.');return;}name=$('url-name').value.trim()||'Web source';content=fetchedContent;url=fetchedUrl;type='url';}
+  else{if(!pendingFile){alert('Please select a file.');return;}name=pendingFile.name;content=pendingFile.content;const ext=($('file-in').files[0]?.name||'').split('.').pop().toLowerCase();type=ext||'file';}
   p.sources.push({id:uid(),name,type,url,on:true,content});
-  if(settings.autoSync!==false) await saveAll();
+  if(settings.autoSync!==false)await saveAll();
   renderSources();updateStatus();closeSrcModal();
 }
 

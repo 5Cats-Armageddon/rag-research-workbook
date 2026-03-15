@@ -1,7 +1,7 @@
 {
-  "name": "notebookai",
-  "version": "1.1.0",
-  "description": "NotebookAI — AI-powered research assistant",
+  "name": "rag-research-workbook",
+  "version": "1.2.0",
+  "description": "RAG Research Workbook — AI-powered research assistant",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -10,8 +10,8 @@
     "pack": "electron-builder --dir"
   },
   "build": {
-    "appId": "com.notebookai.app",
-    "productName": "NotebookAI",
+    "appId": "com.ragresearchworkbook.app",
+    "productName": "RAG Research Workbook",
     "mac": {
       "category": "public.app-category.productivity",
       "target": ["dmg", "zip"]
@@ -28,5 +28,11 @@
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.0.0"
+  },
+  "dependencies": {
+    "mammoth": "^1.7.0",
+    "officeparser": "^4.1.0",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5"
   }
 }

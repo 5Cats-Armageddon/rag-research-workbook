@@ -25,6 +25,14 @@ contextBridge.exposeInMainWorld('electron', {
   getDarkMode: () => ipcRenderer.invoke('get-dark-mode'),
   openExternal: url => ipcRenderer.invoke('open-external', url),
 
+  // macOS TTS
+  macTTS: text => ipcRenderer.invoke('mac-tts', text),
+  copyTTSFile: (src, dest) => ipcRenderer.invoke('copy-tts-file', src, dest),
+  writeFileBase64: (fp, b64) => ipcRenderer.invoke('write-file-base64', fp, b64),
+
+  // File parsing (accepts base64 buffer + filename)
+  parseFileFromBuffer: (fileName, b64) => ipcRenderer.invoke('parse-file-from-buffer', fileName, b64),
+
   // Native URL fetch
   fetchUrlNative: url => ipcRenderer.invoke('fetch-url-native', url),
 
