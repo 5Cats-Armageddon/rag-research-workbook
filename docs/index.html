@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Research Workbook</title>
+
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Mammoth (DOCX) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<!-- SheetJS (XLSX) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f3;--surface:#fff;--surface2:#f0efe9;--surface3:#e4e2db;
+  --border:#e2e0d8;--border2:#ccc9be;
+  --text:#1a1917;--text2:#6b6860;--text3:#9e9b91;
+  --accent:#2d5be3;--accent-bg:#eef2fd;--accent-border:#c5d0f7;
+  --green:#059669;--green-bg:#d1fae5;--green-border:#a7f3d0;
+  --warn:#92400e;--warn-bg:#fef3c7;--warn-border:#fcd34d;
+  --danger:#991b1b;--danger-bg:#fee2e2;--danger-border:#fca5a5;
+  --purple:#6d28d9;--purple-bg:#ede9fe;--purple-border:#c4b5fd;
+  --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
+  --r:8px;--rl:12px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --sh-lg:0 4px 20px rgba(0,0,0,.13);
+}
+body.dark{
+  --bg:#1a1917;--surface:#242320;--surface2:#2e2c29;--surface3:#383532;
+  --border:#3a3835;--border2:#4a4845;
+  --text:#e8e6e0;--text2:#a09d96;--text3:#6b6860;
+  --accent:#5b7ef5;--accent-bg:#1e2a4a;--accent-border:#2d3f6e;
+  --green:#34d399;--green-bg:#0d2b20;--green-border:#065f46;
+  --warn:#fbbf24;--warn-bg:#2d2410;--warn-border:#78510a;
+  --danger:#f87171;--danger-bg:#2d1010;--danger-border:#7b2020;
+  --purple:#a78bfa;--purple-bg:#2d1f5e;--purple-border:#5b3fa8;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:14px;line-height:1.5}
+
+/* Top bar */
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
+.topbar-logo{width:24px;height:24px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center}
+.topbar-logo svg{width:12px;height:12px;stroke:white}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.topbar-btn{padding:5px 10px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.topbar-btn:hover{background:var(--surface2);color:var(--text)}
+.topbar-btn svg{width:11px;height:11px;stroke:currentColor}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);margin-right:2px}
+.sync-dot.ok{background:#10b981}.sync-dot.syncing{background:#f59e0b;animation:pulse .8s infinite}.sync-dot.err{background:#ef4444}
+.ai-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;border:1px solid}
+.ai-badge.anthropic{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.ai-badge.ollama{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.gdrive-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);font-weight:500;display:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.app{display:flex;height:calc(100vh - 48px)}
+
+/* Rail */
+.rail{width:210px;min-width:210px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.rail-top{padding:10px 10px 8px;border-bottom:1px solid var(--border)}
+.new-proj-btn{width:100%;padding:7px 10px;border-radius:var(--r);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .12s}
+.new-proj-btn:hover{background:var(--surface2);border-style:solid;color:var(--text)}
+.projects-list{flex:1;overflow-y:auto;padding:6px}
+.proj-item{padding:8px 10px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all .12s;margin-bottom:2px;display:flex;align-items:center;gap:8px;position:relative}
+.proj-item:hover{background:var(--surface2);border-color:var(--border)}
+.proj-item.active{background:var(--accent-bg);border-color:var(--accent-border)}
+.proj-emoji{font-size:13px;flex-shrink:0;width:18px;text-align:center}
+.proj-info{flex:1;min-width:0}
+.proj-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-meta{font-size:10px;color:var(--text3);margin-top:1px}
+.proj-menu-btn{width:16px;height:16px;border-radius:3px;border:none;background:transparent;color:var(--text3);font-size:13px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0}
+.proj-item:hover .proj-menu-btn,.proj-item.active .proj-menu-btn{display:flex}
+.proj-menu-btn:hover{background:var(--surface3);color:var(--text)}
+.proj-dropdown{position:absolute;right:6px;top:30px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh-lg);z-index:50;min-width:130px;overflow:hidden;display:none}
+.proj-dropdown.open{display:block}
+.proj-dropdown button{display:block;width:100%;padding:7px 12px;text-align:left;border:none;background:transparent;font-family:var(--font);font-size:12px;color:var(--text2);cursor:pointer;transition:background .1s}
+.proj-dropdown button:hover{background:var(--surface2);color:var(--text)}
+.proj-dropdown button.danger{color:var(--danger)}.proj-dropdown button.danger:hover{background:var(--danger-bg)}
+.rail-bottom{padding:8px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
+.rail-btn{width:100%;padding:6px 8px;border-radius:var(--r);border:none;background:transparent;font-family:var(--font);font-size:11px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s}
+.rail-btn:hover{background:var(--surface2);color:var(--text)}
+.rail-btn svg{width:12px;height:12px;stroke:currentColor;flex-shrink:0}
+
+/* Sidebar */
+.sidebar{width:230px;min-width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:12px 12px 8px;border-bottom:1px solid var(--border)}
+.sb-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.sb-proj-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sources-scroll{flex:1;overflow-y:auto;padding:6px}
+.source-item{padding:7px 8px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all .12s;display:flex;align-items:flex-start;gap:7px;margin-bottom:2px}
+.source-item:hover{background:var(--surface2);border-color:var(--border)}
+.source-item.active{background:var(--accent-bg);border-color:var(--accent-border)}
+.src-icon{width:22px;height:22px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px}
+.src-info{flex:1;min-width:0}
+.src-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-preview{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.src-toggle{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;margin-top:3px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center}
+.src-toggle.on{background:var(--accent);border-color:var(--accent)}
+.src-toggle.on::after{content:'';width:5px;height:5px;background:white;border-radius:50%}
+.add-src-btn{margin:6px;padding:7px;border-radius:var(--r);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .12s}
+.add-src-btn:hover{background:var(--surface2);border-style:solid;color:var(--text)}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.main-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 16px;flex-shrink:0}
+.main-tab{padding:10px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;display:flex;align-items:center;gap:6px;font-family:var(--font)}
+.main-tab:hover{color:var(--text2)}
+.main-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.main-tab svg{width:13px;height:13px;stroke:currentColor}
+.tab-panel{flex:1;display:none;flex-direction:column;overflow:hidden}
+.tab-panel.active{display:flex}
+.chat-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px}
+.chat-title{font-size:13px;font-weight:500}
+.chat-sub{font-size:10px;color:var(--text3);margin-top:1px}
+.hdr-btn{padding:4px 8px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.hdr-btn:hover{background:var(--surface2);color:var(--text)}
+.hdr-btn svg{width:10px;height:10px;stroke:currentColor}
+.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:.6}
+.empty-state h3{font-size:15px;font-weight:500;color:var(--text);margin-bottom:5px}
+.empty-state p{font-size:12px;color:var(--text3);max-width:250px;line-height:1.6}
+.proj-home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+.proj-home-emoji{font-size:44px;margin-bottom:14px}
+.proj-home h2{font-size:19px;font-weight:500;margin-bottom:6px}
+.proj-home p{font-size:13px;color:var(--text2);max-width:280px;line-height:1.6;margin-bottom:18px}
+.message{display:flex;gap:8px}.message.user{flex-direction:row-reverse}
+.avatar{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;margin-top:2px}
+.avatar.ai{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.avatar.ai.ollama{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.avatar.user{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.bubble{max-width:72%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.65}
+.message.user .bubble{background:var(--accent);color:white;border-radius:12px 3px 12px 12px}
+.message.ai .bubble{background:var(--surface);border:1px solid var(--border);border-radius:3px 12px 12px 12px;box-shadow:var(--sh)}
+.bubble p{margin:0 0 6px}.bubble p:last-child{margin-bottom:0}
+.bubble strong{font-weight:500}
+.bubble ul{padding-left:15px;margin:3px 0}.bubble li{margin-bottom:2px}
+.cite{display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:1px 5px;border-radius:3px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);vertical-align:middle;margin:0 1px;font-weight:500}
+.bubble.oos{border-color:var(--warn-border);background:var(--warn-bg)}
+.oos-label{font-size:10px;color:var(--warn);display:flex;align-items:center;gap:3px;margin-bottom:4px;font-weight:500}
+.thinking{display:flex;gap:4px;align-items:center}
+.thinking span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:bounce 1.3s ease-in-out infinite}
+.thinking span:nth-child(2){animation-delay:.18s}.thinking span:nth-child(3){animation-delay:.36s}
+@keyframes bounce{0%,80%,100%{transform:scale(.75);opacity:.35}40%{transform:scale(1.05);opacity:1}}
+.input-wrap{padding:12px 16px;background:var(--surface);border-top:1px solid var(--border)}
+.quick-row{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.quick{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
+.quick:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.input-row{display:flex;gap:7px;align-items:flex-end}
+textarea#chat-input{flex:1;border:1px solid var(--border2);border-radius:var(--rl);background:var(--surface2);padding:8px 12px;font-size:13px;color:var(--text);resize:none;min-height:38px;max-height:120px;font-family:var(--font);line-height:1.5;outline:none;transition:border-color .12s,background .12s}
+textarea#chat-input:focus{border-color:var(--accent);background:var(--surface)}
+textarea#chat-input::placeholder{color:var(--text3)}
+.send{width:34px;height:34px;border-radius:9px;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+.send:hover{background:#1e47cc}.send:disabled{background:var(--border);cursor:not-allowed}
+.send svg{width:14px;height:14px;stroke:white}
+
+/* Podcast */
+.podcast-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.podcast-top{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.podcast-config{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pod-field{display:flex;flex-direction:column;gap:3px}
+.pod-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;font-weight:500}
+.pod-select,.pod-input{border:1px solid var(--border2);border-radius:var(--r);padding:5px 8px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--surface2);outline:none;transition:border-color .12s}
+.pod-select:focus,.pod-input:focus{border-color:var(--accent);background:var(--surface)}
+.length-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.length-row input[type=range]{flex:1}
+.podcast-actions{display:flex;gap:8px;align-items:center}
+.pod-gen-btn{padding:7px 16px;border-radius:var(--r);border:none;background:var(--purple);color:white;font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .12s}
+.pod-gen-btn:hover{filter:brightness(1.1)}
+.pod-gen-btn:disabled{opacity:.5;cursor:not-allowed}
+.pod-gen-btn svg{width:13px;height:13px;stroke:white}
+.podcast-body{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.script-area{flex:1;overflow-y:auto;padding:16px}
+.script-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--text3)}
+.script-empty .se-icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.script-empty p{font-size:12px;max-width:260px;line-height:1.6}
+.script-line{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
+.script-speaker{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;white-space:nowrap;margin-top:2px;flex-shrink:0}
+.script-speaker.host1{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.script-speaker.host2{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+.script-speaker.narrator{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.script-text{font-size:13px;line-height:1.65;color:var(--text);flex:1;background:var(--surface2);border-radius:var(--r);padding:7px 10px;border:1px solid var(--border)}
+.script-text:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.podcast-player{padding:12px 16px;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.player-controls{display:flex;align-items:center;gap:10px}
+.play-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--purple);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+.play-btn:hover{filter:brightness(1.1)}
+.play-btn:disabled{opacity:.4;cursor:not-allowed}
+.play-btn svg{width:13px;height:13px;fill:white;stroke:none}
+.progress-wrap{flex:1;display:flex;flex-direction:column;gap:3px}
+.progress-bar{width:100%;height:4px;background:var(--border);border-radius:2px;cursor:pointer;appearance:none;outline:none}
+.progress-bar::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:var(--purple);cursor:pointer}
+.time-label{font-size:10px;color:var(--text3);display:flex;justify-content:space-between}
+.player-actions{display:flex;gap:6px;flex-wrap:wrap}
+.pod-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px}
+.pod-status.generating{color:var(--purple)}
+.pod-progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.pod-progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width .3s}
+
+/* Source panel */
+.panel{width:290px;min-width:290px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;overflow:hidden}
+.panel.open{transform:translateX(0)}
+.panel-hdr{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:7px}
+.panel-hdr h3{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.panel-url{font-size:10px;color:var(--text3);padding:4px 12px;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-body{flex:1;overflow-y:auto;padding:12px;font-size:11px;line-height:1.75;color:var(--text2);white-space:pre-wrap;font-family:var(--mono)}
+.x-btn{width:20px;height:20px;border-radius:4px;border:none;background:transparent;cursor:pointer;color:var(--text3);font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .1s;flex-shrink:0}
+.x-btn:hover{background:var(--surface2);color:var(--text)}
+
+/* Modals */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .18s;backdrop-filter:blur(3px)}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border);box-shadow:var(--sh-lg);padding:20px;width:460px;max-width:92vw;max-height:88vh;overflow-y:auto;transform:translateY(10px);transition:transform .18s}
+.overlay.open .modal{transform:translateY(0)}
+.modal h3{font-size:14px;font-weight:500;margin-bottom:14px}
+.modal-section{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.modal-section:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.section-title{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.tabs{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.tab{flex:1;padding:6px;font-size:11px;text-align:center;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all .12s;font-family:var(--font)}
+.tab.on{background:var(--surface2);color:var(--text);font-weight:500}
+label.lbl{font-size:11px;color:var(--text2);display:block;margin-bottom:3px}
+input.field,textarea.field,select.field{border:1px solid var(--border2);border-radius:var(--r);padding:7px 10px;width:100%;font-size:12px;font-family:var(--font);color:var(--text);background:var(--surface2);outline:none;margin-bottom:10px;transition:border-color .12s,background .12s}
+input.field:focus,textarea.field:focus,select.field:focus{border-color:var(--accent);background:var(--surface)}
+textarea.field{resize:vertical}
+select.field{cursor:pointer}
+.url-row{display:flex;gap:6px;margin-bottom:10px}
+.url-row input.field{margin-bottom:0;flex:1}
+.status-box{font-size:11px;padding:6px 10px;border-radius:var(--r);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.status-box.loading{background:var(--surface2);color:var(--text2)}
+.status-box.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.status-box.err{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.spinner{width:11px;height:11px;border:1.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;color:var(--text3);cursor:pointer;transition:all .12s;margin-bottom:10px;font-size:12px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:var(--accent-bg);color:var(--text2)}
+.drop-zone .di{font-size:22px;margin-bottom:4px}
+.modal-foot{display:flex;gap:6px;justify-content:flex-end;margin-top:16px}
+.btn{padding:6px 13px;border-radius:var(--r);font-family:var(--font);font-size:12px;cursor:pointer;transition:all .12s}
+.btn-ghost{border:1px solid var(--border);background:transparent;color:var(--text2)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-solid{border:none;background:var(--accent);color:white;font-weight:500}
+.btn-solid:hover{background:#1e47cc}
+.btn-solid:disabled{background:var(--border2);cursor:not-allowed;opacity:.6}
+.btn-green{border:none;background:var(--green);color:white;font-weight:500}
+.btn-green:hover{filter:brightness(1.1)}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.btn-danger:hover{background:#fecaca}
+.setting-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px}
+.setting-label{font-size:12px;color:var(--text)}
+.setting-desc{font-size:10px;color:var(--text3);margin-top:1px}
+.toggle-switch{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--border2);border-radius:20px;transition:background .2s}
+.toggle-switch input:checked+.toggle-track{background:var(--accent)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:white;border-radius:50%;transition:transform .2s;pointer-events:none}
+.toggle-switch input:checked~.toggle-thumb{transform:translateX(16px)}
+.err-bubble{background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:var(--r);padding:8px 11px;font-size:12px;color:var(--danger)}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:10px}
+.emoji-opt{font-size:16px;padding:5px;border-radius:5px;cursor:pointer;text-align:center;border:1px solid transparent;transition:all .1s}
+.emoji-opt:hover{background:var(--surface2);border-color:var(--border)}
+.emoji-opt.selected{background:var(--accent-bg);border-color:var(--accent-border)}
+.confirm-modal{width:340px}
+.confirm-msg{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px}
+.provider-toggle{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.provider-btn{flex:1;padding:8px 10px;border:none;background:transparent;font-family:var(--font);font-size:12px;color:var(--text2);cursor:pointer;transition:all .12s;display:flex;flex-direction:column;align-items:center;gap:2px}
+.provider-btn .pb-icon{font-size:16px}
+.provider-btn .pb-label{font-size:11px;font-weight:500}
+.provider-btn .pb-sub{font-size:9px;color:var(--text3)}
+.provider-btn.active.anthropic{background:var(--accent-bg);color:var(--accent)}
+.provider-btn.active.ollama{background:var(--green-bg);color:var(--green)}
+.provider-btn.active .pb-sub{color:inherit;opacity:.7}
+.gdrive-connected{font-size:11px;color:var(--green);display:flex;align-items:center;gap:5px;margin-top:4px}
+.gdrive-disconnected{font-size:11px;color:var(--text3);margin-top:4px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    </div>
+    RAG Research Workbook
+  </div>
+  <div class="topbar-right">
+    <div class="sync-status" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text3)">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">—</span>
+    </div>
+    <div class="gdrive-badge" id="gdrive-badge">📁 Drive</div>
+    <div class="ai-badge" id="ai-badge">—</div>
+    <button class="topbar-btn" onclick="openSettings()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+    <button class="topbar-btn" onclick="toggleDark()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- Rail -->
+  <div class="rail">
+    <div class="rail-top">
+      <button class="new-proj-btn" onclick="openNewProject()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New project
+      </button>
+    </div>
+    <div class="projects-list" id="projects-list"></div>
+    <div class="rail-bottom">
+      <button class="rail-btn" onclick="syncNow()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>Sync now
+      </button>
+      <button class="rail-btn" onclick="exportJSON()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export backup
+      </button>
+      <button class="rail-btn" onclick="importJSON()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3" transform="rotate(180 12 9)"/></svg>Import backup
+      </button>
+    </div>
+  </div>
+
+  <!-- Sources -->
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="sb-label">Sources</div>
+      <div class="sb-proj-name" id="sb-proj-name">—</div>
+    </div>
+    <div class="sources-scroll" id="sources-list"></div>
+    <button class="add-src-btn" onclick="openAddSource()">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add source
+    </button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="main-tabs">
+      <button class="main-tab active" id="mt-chat" onclick="switchMainTab('chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat
+      </button>
+      <button class="main-tab" id="mt-podcast" onclick="switchMainTab('podcast')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.56 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M21.13 20.12a16 16 0 0 0-22.26 0M18.42 15.13a10.15 10.15 0 0 0-12.84 0"/></svg>Podcast
+      </button>
+    </div>
+
+    <!-- Chat -->
+    <div class="tab-panel active" id="tp-chat">
+      <div class="chat-header">
+        <div style="flex:1">
+          <div class="chat-title" id="chat-title">Select a project</div>
+          <div class="chat-sub" id="chat-sub">Choose or create a project to get started</div>
+        </div>
+        <button class="hdr-btn" onclick="exportChatMd()" id="export-btn" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export
+        </button>
+        <button class="hdr-btn" onclick="clearChat()">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>Clear
+        </button>
+      </div>
+      <div class="messages" id="messages">
+        <div class="proj-home">
+          <div class="proj-home-emoji">📚</div>
+          <h2>Welcome to RAG Research Workbook</h2>
+          <p>Create a project to organize your sources and research conversations.</p>
+          <button class="btn btn-solid" onclick="openNewProject()">Create first project</button>
+        </div>
+      </div>
+      <div class="input-wrap" id="input-wrap" style="display:none">
+        <div class="quick-row" id="quick-row">
+          <button class="quick" onclick="sq('Summarize all my sources')">📄 Summarize</button>
+          <button class="quick" onclick="sq('What are the key themes across my sources?')">🔍 Key themes</button>
+          <button class="quick" onclick="sq('What questions do my sources raise?')">❓ Open questions</button>
+          <button class="quick" onclick="sq('Compare and contrast the main arguments')">⚖️ Compare</button>
+          <button class="quick" onclick="switchMainTab('podcast')">🎙️ Generate podcast</button>
+        </div>
+        <div class="input-row">
+          <textarea id="chat-input" placeholder="Ask anything about your sources… (Enter to send, Shift+Enter for new line)" rows="1" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+          <button class="send" id="send-btn" onclick="sendMsg()" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Podcast -->
+    <div class="tab-panel" id="tp-podcast">
+      <div class="podcast-panel">
+        <div class="podcast-top">
+          <div class="podcast-config">
+            <div class="pod-field">
+              <div class="pod-label">Format</div>
+              <select class="pod-select" id="pod-format">
+                <option value="two-host">Two hosts — discussion & debate</option>
+                <option value="narrator">Single narrator — summary</option>
+              </select>
+            </div>
+            <div class="pod-field">
+              <div class="pod-label">Target length</div>
+              <div class="length-row">
+                <input type="range" min="2" max="20" value="8" id="pod-length" oninput="$('pod-length-label').textContent=this.value+' min'">
+                <span id="pod-length-label" style="min-width:40px;text-align:right;font-size:12px;color:var(--text2)">8 min</span>
+              </div>
+            </div>
+          </div>
+          <div class="pod-field">
+            <div class="pod-label">Tone / style</div>
+            <input class="pod-input" type="text" id="pod-tone" value="conversational and engaging" placeholder="e.g. conversational and engaging, academic and rigorous…">
+          </div>
+          <div class="podcast-actions">
+            <button class="pod-gen-btn" id="pod-gen-btn" onclick="generateScript()">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Generate script
+            </button>
+            <div class="pod-status" id="pod-status"></div>
+          </div>
+        </div>
+        <div class="podcast-body">
+          <div class="script-area" id="script-area">
+            <div class="script-empty" id="script-empty">
+              <div class="se-icon">🎙️</div>
+              <p>Configure your podcast above and click <strong>Generate script</strong> to create a podcast from your active sources.</p>
+            </div>
+          </div>
+        </div>
+        <div class="podcast-player" id="podcast-player" style="display:none">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px" id="audio-source-label">—</div>
+          <div class="player-controls">
+            <button class="play-btn" id="play-btn" onclick="togglePlay()" disabled>
+              <svg id="play-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <div class="progress-wrap">
+              <input type="range" class="progress-bar" id="progress-bar" min="0" max="100" value="0" oninput="seekAudio(this.value)">
+              <div class="time-label"><span id="time-current">0:00</span><span id="time-total">0:00</span></div>
+            </div>
+          </div>
+          <div class="player-actions">
+            <button class="btn btn-ghost" onclick="generateAudio()" id="btn-gen-audio" style="font-size:11px;padding:5px 10px">🔊 Generate audio</button>
+            <button class="btn btn-ghost" onclick="exportScript()" style="font-size:11px;padding:5px 10px">📄 Export script</button>
+            <button class="btn btn-ghost" onclick="exportAudio()" id="btn-export-audio" style="font-size:11px;padding:5px 10px;display:none">💾 Save audio</button>
+          </div>
+          <div class="pod-progress-bar" id="audio-progress-bar" style="display:none">
+            <div class="pod-progress-fill" id="audio-progress-fill" style="width:0%"></div>
+          </div>
+          <div class="pod-status" id="audio-status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Source viewer -->
+  <div class="panel" id="panel">
+    <div class="panel-hdr"><h3 id="panel-title">Source</h3><button class="x-btn" onclick="closePanel()">×</button></div>
+    <div id="panel-url" class="panel-url" style="display:none"></div>
+    <div class="panel-body" id="panel-body"></div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="overlay" id="settings-overlay" onclick="if(event.target===this)closeSettings()">
+  <div class="modal" style="width:500px">
+    <h3>⚙️ Settings</h3>
+    <div class="modal-section">
+      <div class="section-title">AI Provider</div>
+      <div class="provider-toggle">
+        <button class="provider-btn anthropic" id="pb-anthropic" onclick="selectProvider('anthropic')">
+          <span class="pb-icon">☁️</span><span class="pb-label">Anthropic</span><span class="pb-sub">Claude Sonnet 4 · Paid</span>
+        </button>
+        <button class="provider-btn ollama" id="pb-ollama" onclick="selectProvider('ollama')">
+          <span class="pb-icon">🦙</span><span class="pb-label">Ollama</span><span class="pb-sub">Local models · Free</span>
+        </button>
+      </div>
+      <div id="anthropic-fields">
+        <label class="lbl">Anthropic API key</label>
+        <input class="field" type="password" id="s-api-key" placeholder="sk-ant-…">
+        <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px">
+          Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>
+        </div>
+      </div>
+      <div id="ollama-fields" style="display:none">
+        <label class="lbl">Ollama host</label>
+        <input class="field" type="text" id="s-ollama-host" placeholder="http://localhost:11434">
+        <label class="lbl">Model</label>
+        <input class="field" type="text" id="s-ollama-model" placeholder="llama3">
+        <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:4px">
+          Note: Ollama requires CORS to be enabled. Start with: <code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px">OLLAMA_ORIGINS="*" ollama serve</code>
+        </div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="section-title">Podcast — ElevenLabs voices</div>
+      <label class="lbl">ElevenLabs API key <span style="color:var(--text3)">(optional)</span></label>
+      <input class="field" type="password" id="s-el-key" placeholder="Your ElevenLabs API key…">
+      <div style="font-size:11px;color:var(--text3);margin-top:-6px">
+        Get a free key at <a href="https://elevenlabs.io" target="_blank" style="color:var(--accent)">elevenlabs.io</a> · Without this, browser Web Speech API is used (free, quality varies by browser/OS)
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="section-title">Google Drive sync</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">
+        Connect Google Drive to sync your projects across devices. The app saves a single file called <code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px">rag_research_workbook_data.json</code> in your Drive.
+      </div>
+      <div id="gdrive-status-display"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-solid" id="btn-gdrive-connect" onclick="gdriveConnect()" style="font-size:11px">Connect Google Drive</button>
+        <button class="btn btn-ghost" id="btn-gdrive-disconnect" onclick="gdriveDisconnect()" style="font-size:11px;display:none">Disconnect</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">
+        Requires a Google Cloud project with OAuth Client ID. See the
+        <a href="DEVELOPER.md" target="_blank" style="color:var(--accent)">Developer Guide</a> for setup instructions.
+        <br>Google Client ID: <input class="field" type="text" id="s-google-client-id" placeholder="your-client-id.apps.googleusercontent.com" style="margin-top:6px;margin-bottom:0">
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="section-title">Appearance</div>
+      <div class="setting-row">
+        <div><div class="setting-label">Dark mode</div></div>
+        <label class="toggle-switch"><input type="checkbox" id="s-dark" onchange="toggleDarkFromSettings(this.checked)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-solid" onclick="saveSettings()">Save settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- New/Edit Project Modal -->
+<div class="overlay" id="proj-overlay" onclick="if(event.target===this)closeProjModal()">
+  <div class="modal">
+    <h3 id="proj-modal-title">New project</h3>
+    <label class="lbl">Name</label>
+    <input class="field" type="text" id="proj-name-input" placeholder="e.g. AI Safety Research…" onkeydown="if(event.key==='Enter')saveProject()">
+    <label class="lbl">Icon</label>
+    <div class="emoji-grid" id="emoji-grid"></div>
+    <label class="lbl">Description <span style="color:var(--text3)">(optional)</span></label>
+    <textarea class="field" id="proj-desc-input" rows="2" placeholder="What is this project about?"></textarea>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeProjModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="saveProject()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Source Modal -->
+<div class="overlay" id="src-overlay" onclick="if(event.target===this)closeSrcModal()">
+  <div class="modal">
+    <h3>Add a source</h3>
+    <div class="tabs">
+      <button class="tab on" id="t-text" onclick="switchTab('text',this)">Paste text</button>
+      <button class="tab" id="t-url" onclick="switchTab('url',this)">From URL</button>
+      <button class="tab" id="t-file" onclick="switchTab('file',this)">Upload file</button>
+    </div>
+    <div id="pane-text">
+      <label class="lbl">Source name</label>
+      <input class="field" type="text" id="src-name" placeholder="Article title, paper name…">
+      <label class="lbl">Content</label>
+      <textarea class="field" id="src-text" rows="6" placeholder="Paste your text here…"></textarea>
+    </div>
+    <div id="pane-url" style="display:none">
+      <label class="lbl">URL</label>
+      <div class="url-row">
+        <input class="field" type="url" id="url-in" placeholder="https://example.com/article" onkeydown="if(event.key==='Enter')doFetch()">
+        <button class="btn btn-solid" id="fetch-btn" onclick="doFetch()" style="white-space:nowrap;padding:6px 10px">Fetch</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">
+        ⚠️ Browser CORS restrictions may block some URLs. If a fetch fails, paste the text manually instead.
+      </div>
+      <div id="fetch-status" style="display:none"></div>
+      <div id="url-preview" style="display:none">
+        <label class="lbl">Source name</label>
+        <input class="field" type="text" id="url-name" placeholder="Source name">
+        <label class="lbl" style="display:flex;justify-content:space-between"><span>Preview</span><span id="char-ct" style="color:var(--text3)"></span></label>
+        <textarea class="field" id="url-body" rows="4" style="font-size:11px;font-family:var(--mono);color:var(--text2)"></textarea>
+      </div>
+    </div>
+    <div id="pane-file" style="display:none">
+      <div class="drop-zone" id="drop-zone" onclick="triggerFile()" ondragover="dov(event)" ondragleave="dol()" ondrop="dop(event)">
+        <div class="di">📎</div><div>Drop a file or click to browse</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">PDF · DOCX · XLSX · PPTX · HTML · TXT · MD</div>
+      </div>
+      <input type="file" id="file-in" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.html,.htm,.txt,.md" style="display:none" onchange="onFile(event)">
+      <div id="file-status" style="display:none;font-size:11px;padding:2px 0"></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5;padding:7px 9px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border)">
+        ⚠️ <strong style="font-weight:500">Audio and video files are not supported.</strong> Transcribe them externally and paste the transcript as a text source.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeSrcModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="addSrc()">Add source</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal confirm-modal">
+    <h3 id="confirm-title">Confirm</h3>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-action-btn" onclick="confirmAction()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Constants ────────────────────────────────────────────
+const EMOJIS=['📚','🔬','💡','📝','🌐','🧪','📊','🗂️','🏛️','🔭','🧬','⚗️','📰','🎯','🔍','💼','🌿','🏗️','🎓','🧠','✍️','🗺️','💻','📡'];
+const LS_KEY='rrw_data_v1';
+const LS_SETTINGS='rrw_settings_v1';
+const GDRIVE_FILE_NAME='rag_research_workbook_data.json';
+const GDRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
+
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function uid(){return 'id'+Date.now()+Math.random().toString(36).slice(2,7)}
+
+// ── State ────────────────────────────────────────────────
+let projects=[], activeId=null, busy=false, curTab='text';
+let pendingFile=null, fetchedContent=null, fetchedUrl=null;
+let selEmoji='📚', editProjId=null, confirmCb=null, openDd=null;
+let settings={}, podScript=[], podAudioBlob=null, podAudioUrl=null, audioEl=null;
+let elVoices=[], podTTSFilePath=null;
+// Google Drive state
+let gdriveToken=null, gdriveFileId=null;
+let speechSynth=window.speechSynthesis;
+
+function getProj(){return projects.find(p=>p.id===activeId)}
+
+// ── Settings ─────────────────────────────────────────────
+function loadSettings(){
+  try{const s=JSON.parse(localStorage.getItem(LS_SETTINGS)||'{}');
+    settings={
+      apiKey:s.apiKey||'',
+      elevenlabsKey:s.elevenlabsKey||'',
+      aiProvider:s.aiProvider||'anthropic',
+      ollamaModel:s.ollamaModel||'llama3',
+      ollamaHost:s.ollamaHost||'http://localhost:11434',
+      darkMode:s.darkMode||false,
+      googleClientId:s.googleClientId||''
+    };
+  }catch(e){settings={apiKey:'',elevenlabsKey:'',aiProvider:'anthropic',ollamaModel:'llama3',ollamaHost:'http://localhost:11434',darkMode:false,googleClientId:''};}
+}
+function persistSettings(){localStorage.setItem(LS_SETTINGS,JSON.stringify(settings));}
+
+// ── LocalStorage data ────────────────────────────────────
+function lsSave(){
+  try{localStorage.setItem(LS_KEY,JSON.stringify({projects,activeId}));setSyncStatus('ok','Saved');}
+  catch(e){setSyncStatus('err','Save failed');}
+}
+function lsLoad(){
+  try{const d=JSON.parse(localStorage.getItem(LS_KEY)||'{}');projects=d.projects||[];activeId=d.activeId||null;}
+  catch(e){projects=[];activeId=null;}
+}
+
+function setSyncStatus(s,l){$('sync-dot').className='sync-dot '+s;$('sync-label').textContent=l;}
+
+// ── Google Drive ─────────────────────────────────────────
+function loadGDriveScript(){
+  return new Promise(resolve=>{
+    if(window.google?.accounts?.oauth2){resolve();return;}
+    const s=document.createElement('script');
+    s.src='https://accounts.google.com/gsi/client';
+    s.onload=resolve;
+    document.head.appendChild(s);
+  });
+}
+
+async function gdriveConnect(){
+  if(!settings.googleClientId){alert('Please enter your Google Client ID in Settings first.');return;}
+  await loadGDriveScript();
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:settings.googleClientId,
+    scope:GDRIVE_SCOPE,
+    callback:async(resp)=>{
+      if(resp.error){alert('Google Drive auth failed: '+resp.error);return;}
+      gdriveToken=resp.access_token;
+      localStorage.setItem('rrw_gdrive_token',gdriveToken);
+      await gdriveSync();
+      updateGDriveUI();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function gdriveDisconnect(){
+  gdriveToken=null; gdriveFileId=null;
+  localStorage.removeItem('rrw_gdrive_token');
+  updateGDriveUI();
+}
+
+function updateGDriveUI(){
+  const connected=!!gdriveToken;
+  $('gdrive-badge').style.display=connected?'inline-flex':'none';
+  $('btn-gdrive-connect').style.display=connected?'none':'inline-flex';
+  $('btn-gdrive-disconnect').style.display=connected?'inline-flex':'none';
+  $('gdrive-status-display').innerHTML=connected
+    ?'<div class="gdrive-connected">✓ Connected to Google Drive</div>'
+    :'<div class="gdrive-disconnected">Not connected</div>';
+}
+
+async function gdriveSync(){
+  if(!gdriveToken) return false;
+  setSyncStatus('syncing','Syncing to Drive…');
+  try {
+    // Search for existing file
+    if(!gdriveFileId){
+      const searchResp=await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FILE_NAME}'+and+trashed=false&fields=files(id,name)`,
+        {headers:{Authorization:`Bearer ${gdriveToken}`}}
+      );
+      const searchData=await searchResp.json();
+      if(searchData.files&&searchData.files.length>0) gdriveFileId=searchData.files[0].id;
+    }
+
+    const content=JSON.stringify({projects,activeId},null,2);
+    const blob=new Blob([content],{type:'application/json'});
+
+    if(gdriveFileId){
+      // Update existing file
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${gdriveFileId}?uploadType=media`,{
+        method:'PATCH',headers:{Authorization:`Bearer ${gdriveToken}`,'Content-Type':'application/json'},body:blob
+      });
+    } else {
+      // Create new file
+      const meta={name:GDRIVE_FILE_NAME,mimeType:'application/json'};
+      const form=new FormData();
+      form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file',blob);
+      const createResp=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST',headers:{Authorization:`Bearer ${gdriveToken}`},body:form
+      });
+      const createData=await createResp.json();
+      gdriveFileId=createData.id;
+    }
+    setSyncStatus('ok','Synced to Drive');
+    return true;
+  } catch(e){
+    setSyncStatus('err','Drive sync failed');
+    gdriveToken=null; // token may have expired
+    updateGDriveUI();
+    return false;
+  }
+}
+
+async function gdriveLoad(){
+  if(!gdriveToken) return false;
+  try {
+    const searchResp=await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=name='${GDRIVE_FILE_NAME}'+and+trashed=false&fields=files(id,name)`,
+      {headers:{Authorization:`Bearer ${gdriveToken}`}}
+    );
+    const searchData=await searchResp.json();
+    if(!searchData.files||!searchData.files.length) return false;
+    gdriveFileId=searchData.files[0].id;
+    const fileResp=await fetch(
+      `https://www.googleapis.com/drive/v3/files/${gdriveFileId}?alt=media`,
+      {headers:{Authorization:`Bearer ${gdriveToken}`}}
+    );
+    const data=await fileResp.json();
+    if(data.projects){projects=data.projects;activeId=data.activeId||null;}
+    return true;
+  } catch(e){ return false; }
+}
+
+async function syncNow(){
+  lsSave();
+  if(gdriveToken) await gdriveSync();
+}
+
+// ── Init ─────────────────────────────────────────────────
+async function init(){
+  loadSettings();
+  lsLoad();
+  applyTheme(settings.darkMode);
+  updateAIBadge();
+  buildEmojiGrid();
+
+  // Try restoring Google Drive token
+  const savedToken=localStorage.getItem('rrw_gdrive_token');
+  if(savedToken&&settings.googleClientId){
+    gdriveToken=savedToken;
+    const loaded=await gdriveLoad();
+    if(loaded) lsSave();
+    updateGDriveUI();
+  }
+
+  renderProjects();
+  if(activeId&&getProj()) activateProject(activeId,false); else showHome();
+  setSyncStatus('ok','Ready');
+
+  if(settings.elevenlabsKey) loadELVoices();
+
+  // Set up PDF.js worker
+  if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc=
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  document.addEventListener('click',e=>{
+    if(openDd&&!e.target.closest('.proj-dropdown')&&!e.target.closest('.proj-menu-btn')) closeAllDd();
+  });
+}
+
+// ── Theme ────────────────────────────────────────────────
+function applyTheme(dark){document.body.classList.toggle('dark',!!dark);}
+function toggleDark(){settings.darkMode=!document.body.classList.contains('dark');applyTheme(settings.darkMode);persistSettings();}
+function toggleDarkFromSettings(v){applyTheme(v);}
+function updateAIBadge(){
+  const b=$('ai-badge'),p=settings.aiProvider||'anthropic';
+  b.className='ai-badge '+p;
+  b.textContent=p==='ollama'?`🦙 ${settings.ollamaModel||'llama3'}`:'☁️ Claude';
+}
+
+// ── Main tab switch ──────────────────────────────────────
+function switchMainTab(tab){
+  ['chat','podcast'].forEach(t=>{$(`mt-${t}`).classList.toggle('active',t===tab);$(`tp-${t}`).classList.toggle('active',t===tab);});
+}
+
+// ── Settings modal ───────────────────────────────────────
+function openSettings(){
+  $('s-api-key').value=settings.apiKey||'';
+  $('s-el-key').value=settings.elevenlabsKey||'';
+  $('s-ollama-host').value=settings.ollamaHost||'http://localhost:11434';
+  $('s-ollama-model').value=settings.ollamaModel||'llama3';
+  $('s-google-client-id').value=settings.googleClientId||'';
+  $('s-dark').checked=settings.darkMode||false;
+  selectProvider(settings.aiProvider||'anthropic',false);
+  updateGDriveUI();
+  $('settings-overlay').classList.add('open');
+}
+function closeSettings(){$('settings-overlay').classList.remove('open')}
+function selectProvider(p,save=true){
+  $('pb-anthropic').classList.toggle('active',p==='anthropic');
+  $('pb-ollama').classList.toggle('active',p==='ollama');
+  $('anthropic-fields').style.display=p==='anthropic'?'block':'none';
+  $('ollama-fields').style.display=p==='ollama'?'block':'none';
+}
+function saveSettings(){
+  const provider=$('pb-ollama').classList.contains('active')?'ollama':'anthropic';
+  settings={
+    apiKey:$('s-api-key').value.trim(),
+    elevenlabsKey:$('s-el-key').value.trim(),
+    aiProvider:provider,
+    ollamaModel:$('s-ollama-model').value.trim()||'llama3',
+    ollamaHost:$('s-ollama-host').value.trim()||'http://localhost:11434',
+    darkMode:$('s-dark').checked,
+    googleClientId:$('s-google-client-id').value.trim()
+  };
+  applyTheme(settings.darkMode);
+  updateAIBadge();
+  persistSettings();
+  closeSettings();
+  if(settings.elevenlabsKey) loadELVoices();
+  syncNow();
+}
+
+// ── Projects ─────────────────────────────────────────────
+function renderProjects(){
+  const el=$('projects-list');
+  if(!projects.length){el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No projects yet.</div>`;return;}
+  el.innerHTML=projects.map(p=>`
+    <div class="proj-item${p.id===activeId?' active':''}" onclick="activateProject('${p.id}',true)" id="pi-${p.id}">
+      <div class="proj-emoji">${p.emoji||'📚'}</div>
+      <div class="proj-info"><div class="proj-name">${esc(p.name)}</div><div class="proj-meta">${p.sources.length} source${p.sources.length!==1?'s':''}</div></div>
+      <button class="proj-menu-btn" onclick="toggleDd(event,'${p.id}')">⋯</button>
+      <div class="proj-dropdown" id="dd-${p.id}">
+        <button onclick="editProject('${p.id}')">✏️ Rename</button>
+        <button onclick="dupProject('${p.id}')">📋 Duplicate</button>
+        <button onclick="exportProjectJSON('${p.id}')">📦 Export</button>
+        <button class="danger" onclick="delProjectConfirm('${p.id}')">🗑️ Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function activateProject(id,persist=true){
+  activeId=id; closeAllDd();
+  const p=getProj(); if(!p) return;
+  $('sb-proj-name').textContent=p.name;
+  $('chat-title').textContent=p.name;
+  $('input-wrap').style.display='block';
+  $('export-btn').style.display='flex';
+  renderSources(); renderHistory(); updateStatus();
+  if(persist) syncNow();
+  renderProjects();
+}
+
+function showHome(){
+  activeId=null;
+  $('sb-proj-name').textContent='—';
+  $('chat-title').textContent='Select a project';
+  $('chat-sub').textContent='Choose or create a project to get started';
+  $('input-wrap').style.display='none';
+  $('export-btn').style.display='none';
+  $('sources-list').innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No project selected.</div>`;
+  $('messages').innerHTML=`<div class="proj-home"><div class="proj-home-emoji">📚</div><h2>Welcome to RAG Research Workbook</h2><p>Create a project to organize your sources and research conversations.</p><button class="btn btn-solid" onclick="openNewProject()">Create first project</button></div>`;
+}
+
+function openNewProject(){
+  editProjId=null; selEmoji='📚';
+  $('proj-modal-title').textContent='New project';
+  $('proj-name-input').value=''; $('proj-desc-input').value='';
+  updateEmojiGrid(); $('proj-overlay').classList.add('open');
+  setTimeout(()=>$('proj-name-input').focus(),120);
+}
+function editProject(id){
+  closeAllDd();
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  editProjId=id; selEmoji=p.emoji||'📚';
+  $('proj-modal-title').textContent='Edit project';
+  $('proj-name-input').value=p.name; $('proj-desc-input').value=p.desc||'';
+  updateEmojiGrid(); $('proj-overlay').classList.add('open');
+  setTimeout(()=>$('proj-name-input').focus(),120);
+}
+function saveProject(){
+  const name=$('proj-name-input').value.trim(); if(!name){alert('Please enter a project name.');return;}
+  const desc=$('proj-desc-input').value.trim();
+  if(editProjId){
+    const p=projects.find(x=>x.id===editProjId);
+    if(p){p.name=name;p.emoji=selEmoji;p.desc=desc;}
+    if(activeId===editProjId){$('sb-proj-name').textContent=name;$('chat-title').textContent=name;}
+  } else {
+    const p={id:uid(),name,emoji:selEmoji,desc,sources:[],history:[]};
+    projects.push(p); activateProject(p.id,false);
+  }
+  syncNow(); renderProjects(); closeProjModal();
+}
+function dupProject(id){
+  closeAllDd();
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  const c=JSON.parse(JSON.stringify(p)); c.id=uid(); c.name=p.name+' (copy)'; c.history=[];
+  projects.push(c); syncNow(); renderProjects();
+}
+function delProjectConfirm(id){
+  closeAllDd();
+  const p=projects.find(x=>x.id===id); if(!p) return;
+  $('confirm-title').textContent='Delete project?';
+  $('confirm-msg').textContent=`"${p.name}" and all its sources and chat history will be permanently deleted.`;
+  $('confirm-action-btn').textContent='Delete';
+  confirmCb=()=>{projects=projects.filter(x=>x.id!==id);if(activeId===id)showHome();syncNow();renderProjects();closeConfirm();};
+  $('confirm-overlay').classList.add('open');
+}
+function closeProjModal(){$('proj-overlay').classList.remove('open')}
+function toggleDd(e,id){e.stopPropagation();const dd=$('dd-'+id),was=dd.classList.contains('open');closeAllDd();if(!was){dd.classList.add('open');openDd=id;}}
+function closeAllDd(){document.querySelectorAll('.proj-dropdown.open').forEach(d=>d.classList.remove('open'));openDd=null;}
+function buildEmojiGrid(){$('emoji-grid').innerHTML=EMOJIS.map(e=>`<div class="emoji-opt${e===selEmoji?' selected':''}" onclick="selectEmoji('${e}')">${e}</div>`).join('');}
+function updateEmojiGrid(){document.querySelectorAll('.emoji-opt').forEach(el=>el.classList.toggle('selected',el.textContent===selEmoji));}
+function selectEmoji(e){selEmoji=e;updateEmojiGrid();}
+
+// ── Sources ──────────────────────────────────────────────
+function renderSources(){
+  const p=getProj(), el=$('sources-list');
+  const ICONS={text:'📄',file:'📁',url:'🌐',pdf:'📕',docx:'📝',doc:'📝',xlsx:'📊',xls:'📊',csv:'📊',pptx:'📋',ppt:'📋',html:'🌐',htm:'🌐',md:'📄'};
+  if(!p||!p.sources.length){el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No sources yet.</div>`;return;}
+  el.innerHTML=p.sources.map(s=>`
+    <div class="source-item${s.on?' active':''}" onclick="viewSrc('${s.id}')">
+      <div class="src-icon">${ICONS[s.type]||'📄'}</div>
+      <div class="src-info"><div class="src-name">${esc(s.name)}</div><div class="src-preview">${esc(s.url||s.content.slice(0,45)+'…')}</div></div>
+      <div class="src-toggle${s.on?' on':''}" onclick="toggleSrc(event,'${s.id}')"></div>
+    </div>`).join('');
+}
+function toggleSrc(e,id){
+  e.stopPropagation();const p=getProj();if(!p)return;
+  const s=p.sources.find(x=>x.id===id);if(s){s.on=!s.on;syncNow();renderSources();updateStatus();}
+}
+function viewSrc(id){
+  const p=getProj();if(!p)return;
+  const s=p.sources.find(x=>x.id===id);if(!s)return;
+  $('panel-title').textContent=s.name;$('panel-body').textContent=s.content;
+  const pu=$('panel-url');if(s.url){pu.style.display='block';pu.textContent=s.url;}else{pu.style.display='none';}
+  $('panel').classList.add('open');
+}
+function closePanel(){$('panel').classList.remove('open')}
+function updateStatus(){
+  const p=getProj();if(!p){$('chat-sub').textContent='No project selected';return;}
+  const n=p.sources.filter(s=>s.on).length;
+  $('chat-sub').textContent=n?`${n} source${n>1?'s':''} active · strict grounding on`:'No sources active';
+  updateSend();
+}
+
+// ── Chat ─────────────────────────────────────────────────
+function renderHistory(){
+  const p=getProj(),el=$('messages');
+  if(!p||!p.history.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">${p?p.emoji:'🔬'}</div><h3>${p?esc(p.name):'Research'}</h3><p>${p&&p.desc?esc(p.desc):'Add sources and ask questions.'}</p></div>`;
+    $('quick-row').style.display='flex'; return;
+  }
+  el.innerHTML='';$('quick-row').style.display='none';
+  p.history.forEach(m=>addBubbleDom(m.role==='user'?'user':'ai',m.content,m.oos,m.provider));
+  el.scrollTop=el.scrollHeight;
+}
+function updateSend(){const p=getProj();$('send-btn').disabled=!(p&&$('chat-input').value.trim()&&p.sources.some(s=>s.on));}
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';updateSend();}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function sq(t){const i=$('chat-input');i.value=t;resize(i);sendMsg();}
+
+async function sendMsg(){
+  const inp=$('chat-input'),text=inp.value.trim();
+  if(!text||busy)return;
+  const provider=settings.aiProvider||'anthropic';
+  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings.');openSettings();return;}
+  const p=getProj();if(!p)return;
+  const active=p.sources.filter(s=>s.on);if(!active.length)return;
+  const el=$('messages');
+  if(el.querySelector('.empty-state,.proj-home'))el.innerHTML='';
+  $('quick-row').style.display='none';
+  addBubbleDom('user',text);
+  p.history.push({role:'user',content:text});
+  inp.value='';inp.style.height='auto';updateSend();
+  const tid=addThinking();busy=true;
+  try {
+    let reply=provider==='ollama'?await callOllama(active,p.history.filter(m=>m.role==='user'||m.role==='assistant')):await callAnthropic(active,p.history.filter(m=>m.role==='user'||m.role==='assistant'));
+    removeThinking(tid);
+    const oos=reply.startsWith('NOT_IN_SOURCES:');
+    const clean=oos?reply.replace('NOT_IN_SOURCES:','').trim():reply;
+    addBubbleDom('ai',clean,oos,provider);
+    p.history.push({role:'assistant',content:clean,oos,provider});
+    syncNow();
+  } catch(err){removeThinking(tid);addError(err.message);}
+  busy=false;updateSend();
+}
+
+async function callAnthropic(active,messages){
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildPrompt(active),messages})
+  });
+  const data=await resp.json();
+  if(data.error)throw new Error(data.error.message);
+  return data.content?.map(b=>b.text||'').join('')||'No response.';
+}
+async function callOllama(active,messages){
+  const host=settings.ollamaHost||'http://localhost:11434',model=settings.ollamaModel||'llama3';
+  const resp=await fetch(`${host}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'system',content:buildPrompt(active)},...messages],stream:false})});
+  if(!resp.ok)throw new Error(`Ollama error ${resp.status}`);
+  const data=await resp.json();
+  return data.choices?.[0]?.message?.content||'No response from Ollama.';
+}
+function buildPrompt(active){
+  const blocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}"${s.url?` url="${s.url}"`:''}>\n${s.content}\n</source>`).join('\n\n');
+  return `You are a strict research assistant. Answer ONLY from the provided sources. Do not use outside knowledge.\n\nRULES:\n1. Answer ONLY from sources.\n2. Cite source name using [Source Name].\n3. If not in sources: "NOT_IN_SOURCES: [explanation]"\n4. No "generally speaking" unless from a source.\n5. If partially covered, answer that and flag the rest.\n\nSources:\n\n${blocks}`;
+}
+function addBubbleDom(role,text,oos=false,provider='anthropic'){
+  const el=$('messages'),d=document.createElement('div');d.className=`message ${role}`;
+  const ac=role==='ai'?(provider==='ollama'?'avatar ai ollama':'avatar ai'):'avatar user';
+  const al=role==='ai'?(provider==='ollama'?'🦙':'AI'):'You';
+  d.innerHTML=`<div class="${ac}">${al}</div><div class="bubble${oos?' oos':''}">${role==='ai'?fmtAI(text,oos):'<p>'+esc(text)+'</p>'}</div>`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+function fmtAI(text,oos){
+  const pre=oos?`<div class="oos-label">⚠️ Not found in sources</div>`:'';
+  const html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.*?)`/g,'<code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px;font-size:11px">$1</code>')
+    .replace(/\[([^\]]+)\]/g,'<span class="cite">📎 $1</span>')
+    .split('\n\n').map(p=>{
+      if(p.startsWith('- ')||p.includes('\n- '))return`<ul>${p.split('\n').filter(l=>l.trim()).map(l=>`<li>${l.replace(/^[-•]\s*/,'')}</li>`).join('')}</ul>`;
+      return`<p>${p.replace(/\n/g,'<br>')}</p>`;
+    }).join('');
+  return pre+html;
+}
+function addThinking(){const el=$('messages'),id='tk'+Date.now(),d=document.createElement('div');d.className='message ai';d.id=id;d.innerHTML=`<div class="avatar ai">AI</div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;el.appendChild(d);el.scrollTop=el.scrollHeight;return id;}
+function removeThinking(id){$(id)?.remove()}
+function addError(msg){const el=$('messages'),d=document.createElement('div');d.innerHTML=`<div class="err-bubble">⚠️ ${esc(msg)}</div>`;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function clearChat(){const p=getProj();if(!p)return;p.history=[];syncNow();renderHistory();}
+
+// ── Podcast ──────────────────────────────────────────────
+async function generateScript(){
+  const p=getProj();if(!p){alert('Please select a project first.');return;}
+  const active=p.sources.filter(s=>s.on);if(!active.length){alert('Please activate at least one source.');return;}
+  const provider=settings.aiProvider||'anthropic';
+  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings.');openSettings();return;}
+  const format=$('pod-format').value,length=$('pod-length').value,tone=$('pod-tone').value||'conversational and engaging';
+  const isTwoHost=format==='two-host';
+  $('pod-gen-btn').disabled=true;setPodStatus('generating','Generating script…');
+  const sourceBlocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}">\n${s.content.slice(0,4000)}\n</source>`).join('\n\n');
+  const prompt=isTwoHost
+    ?`Create a two-host podcast script. Return ONLY a JSON array, no other text. Each line: {"speaker":"Host1","text":"..."} or {"speaker":"Host2","text":"..."}\nTone: ${tone}\nTarget: ~${length} minutes (~${parseInt(length)*130} words)\nBase EVERYTHING on the sources.\n\nSources:\n${sourceBlocks}`
+    :`Create a single-narrator podcast script. Return ONLY a JSON array. Each line: {"speaker":"Narrator","text":"..."}\nTone: ${tone}\nTarget: ~${length} minutes (~${parseInt(length)*130} words)\nBase EVERYTHING on the sources.\n\nSources:\n${sourceBlocks}`;
+  try {
+    let raw;
+    if(provider==='anthropic'){
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})});
+      const data=await resp.json();if(data.error)throw new Error(data.error.message);
+      raw=data.content?.map(b=>b.text||'').join('')||'';
+    } else {
+      const host=settings.ollamaHost||'http://localhost:11434',model=settings.ollamaModel||'llama3';
+      const resp=await fetch(`${host}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:false})});
+      const data=await resp.json();raw=data.choices?.[0]?.message?.content||'';
+    }
+    const jm=raw.match(/\[[\s\S]*\]/);if(!jm)throw new Error('Could not parse script — try again');
+    podScript=JSON.parse(jm[0]);if(!podScript.length)throw new Error('Script was empty');
+    renderScript();
+    $('podcast-player').style.display='block';
+    setPodStatus('','Script ready — review, then generate audio');
+  } catch(err){setPodStatus('err','Error: '+err.message);}
+  $('pod-gen-btn').disabled=false;
+}
+
+function renderScript(){
+  const area=$('script-area');$('script-empty').style.display='none';area.innerHTML='';
+  podScript.forEach((line,i)=>{
+    const spk=line.speaker||'Narrator';
+    const cls=spk==='Host1'?'host1':spk==='Host2'?'host2':'narrator';
+    const div=document.createElement('div');div.className='script-line';
+    div.innerHTML=`<div class="script-speaker ${cls}">${esc(spk)}</div><div class="script-text" contenteditable="true" data-i="${i}">${esc(line.text)}</div>`;
+    area.appendChild(div);
+  });
+  area.querySelectorAll('.script-text').forEach(el=>{el.addEventListener('blur',()=>{podScript[parseInt(el.dataset.i)].text=el.textContent;});});
+}
+function setPodStatus(type,msg){const el=$('pod-status');el.className=`pod-status${type==='generating'?' generating':''}`;el.textContent=msg;}
+
+// ── ElevenLabs ───────────────────────────────────────────
+async function loadELVoices(){
+  try {
+    const resp=await fetch('https://api.elevenlabs.io/v1/voices',{headers:{'xi-api-key':settings.elevenlabsKey}});
+    const data=await resp.json();
+    elVoices=(data.voices||[]).map(v=>({id:v.voice_id,name:v.name}));
+  } catch(e){elVoices=[];}
+}
+
+async function generateAudio(){
+  if(!podScript.length){alert('Generate a script first.');return;}
+  $('btn-gen-audio').disabled=true;
+  $('audio-progress-bar').style.display='block';
+  $('audio-status').textContent='';
+  $('play-btn').disabled=true;
+  $('btn-export-audio').style.display='none';
+  if(settings.elevenlabsKey&&elVoices.length) await generateELAudio();
+  else await generateBrowserTTS();
+  $('btn-gen-audio').disabled=false;
+}
+
+async function generateELAudio(){
+  const h1Voice=elVoices[0]?.id, h2Voice=elVoices[1]?.id||elVoices[0]?.id;
+  const chunks=[];let done=0;
+  $('audio-source-label').textContent='Generating with ElevenLabs…';
+  for(const line of podScript){
+    const voiceId=line.speaker==='Host2'?h2Voice:h1Voice;
+    try {
+      const resp=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,{method:'POST',headers:{'Content-Type':'application/json','xi-api-key':settings.elevenlabsKey},body:JSON.stringify({text:line.text,model_id:'eleven_multilingual_v2',voice_settings:{stability:0.5,similarity_boost:0.75}})});
+      if(!resp.ok)throw new Error(`ElevenLabs error ${resp.status}`);
+      chunks.push(new Uint8Array(await resp.arrayBuffer()));
+    } catch(e){$('audio-status').textContent=`⚠️ Line failed: ${e.message}`;}
+    done++;$('audio-progress-fill').style.width=`${Math.round(done/podScript.length*100)}%`;
+  }
+  const total=chunks.reduce((a,c)=>a+c.length,0),merged=new Uint8Array(total);
+  let offset=0;chunks.forEach(c=>{merged.set(c,offset);offset+=c.length;});
+  podAudioBlob=new Blob([merged],{type:'audio/mpeg'});
+  podAudioUrl=URL.createObjectURL(podAudioBlob);
+  setupPlayer(podAudioUrl,'ElevenLabs AI voices');
+  $('btn-export-audio').style.display='inline-flex';
+  $('btn-export-audio').textContent='💾 Save MP3';
+}
+
+async function generateBrowserTTS(){
+  if(!speechSynth){$('audio-status').textContent='⚠️ Web Speech API not supported in this browser.';return;}
+  $('audio-source-label').textContent='Generating with browser TTS…';
+  $('audio-status').textContent='Speaking script via browser TTS — recording not available in browser. Use ElevenLabs for downloadable audio.';
+
+  // Browser TTS can't be recorded to a file, so we just play it directly
+  speechSynth.cancel();
+  let i=0;
+  const speakNext=()=>{
+    if(i>=podScript.length){$('audio-status').textContent='Playback complete.';return;}
+    const utt=new SpeechSynthesisUtterance(podScript[i].text);
+    utt.rate=0.95;utt.pitch=1.0;
+    // Use different pitch for Host2
+    if(podScript[i].speaker==='Host2') utt.pitch=0.85;
+    utt.onend=()=>{i++;$('audio-progress-fill').style.width=`${Math.round(i/podScript.length*100)}%`;speakNext();};
+    speechSynth.speak(utt);
+  };
+  speakNext();
+  $('play-btn').disabled=false;
+  $('play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+}
+
+function setupPlayer(url,label){
+  $('audio-source-label').textContent=label;
+  $('audio-progress-bar').style.display='none';
+  $('play-btn').disabled=false;
+  if(audioEl){audioEl.pause();URL.revokeObjectURL(audioEl._blobUrl);}
+  audioEl=new Audio(url);audioEl._blobUrl=url;
+  audioEl.addEventListener('timeupdate',()=>{
+    const pct=audioEl.duration?(audioEl.currentTime/audioEl.duration*100):0;
+    $('progress-bar').value=pct;
+    $('time-current').textContent=fmtTime(audioEl.currentTime);
+    $('time-total').textContent=fmtTime(audioEl.duration||0);
+  });
+  audioEl.addEventListener('ended',()=>{$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';});
+  $('audio-status').textContent='Audio ready!';
+}
+
+function togglePlay(){
+  if(speechSynth&&speechSynth.speaking&&!audioEl){
+    if(speechSynth.paused)speechSynth.resume();else speechSynth.pause();
+    return;
+  }
+  if(!audioEl)return;
+  if(audioEl.paused){audioEl.play();$('play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}
+  else{audioEl.pause();$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';}
+}
+function seekAudio(val){if(audioEl&&audioEl.duration)audioEl.currentTime=audioEl.duration*(val/100);}
+function fmtTime(s){if(isNaN(s))return'0:00';const m=Math.floor(s/60);return`${m}:${String(Math.floor(s%60)).padStart(2,'0')}`;}
+
+async function exportScript(){
+  if(!podScript.length){alert('No script to export.');return;}
+  const txt=podScript.map(l=>`${l.speaker}:\n${l.text}`).join('\n\n');
+  downloadFile('podcast_script.txt',txt,'text/plain');
+}
+async function exportAudio(){
+  if(!podAudioBlob)return;
+  const url=URL.createObjectURL(podAudioBlob);
+  const a=document.createElement('a');a.href=url;a.download='podcast.mp3';a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Export / Import ──────────────────────────────────────
+function downloadFile(name,content,type='text/plain'){
+  const blob=new Blob([content],{type});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;a.click();
+  URL.revokeObjectURL(url);
+}
+function exportJSON(){
+  downloadFile(`rrw_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({projects,exportedAt:new Date().toISOString()},null,2),'application/json');
+}
+function exportProjectJSON(id){
+  closeAllDd();const p=projects.find(x=>x.id===id);if(!p)return;
+  downloadFile(`${p.name.replace(/[^a-z0-9]/gi,'_')}_export.json`,JSON.stringify({projects:[p],exportedAt:new Date().toISOString()},null,2),'application/json');
+}
+function exportChatMd(){
+  const p=getProj();if(!p||!p.history.length){alert('No chat history to export.');return;}
+  let md=`# ${p.name} — Chat Export\n\n_Exported ${new Date().toLocaleString()}_\n\n---\n\n`;
+  p.history.forEach(m=>{md+=m.role==='user'?`**You:** ${m.content}\n\n`:`**RAG Research Workbook:** ${m.content}\n\n`;});
+  downloadFile(`${p.name.replace(/[^a-z0-9]/gi,'_')}_chat.md`,md,'text/markdown');
+}
+function importJSON(){
+  const input=document.createElement('input');input.type='file';input.accept='.json';
+  input.onchange=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    const text=await file.text();
+    try {
+      const data=JSON.parse(text);const imported=data.projects||[];
+      if(!imported.length){alert('No projects found in file.');return;}
+      $('confirm-title').textContent='Import projects?';
+      $('confirm-msg').textContent=`Import ${imported.length} project${imported.length!==1?'s':''}? Duplicate IDs will be skipped.`;
+      $('confirm-action-btn').textContent='Import';
+      confirmCb=()=>{let added=0;imported.forEach(p=>{if(!projects.find(x=>x.id===p.id)){projects.push(p);added++;}});syncNow();renderProjects();closeConfirm();alert(`Imported ${added} project${added!==1?'s':''}.`);};
+      $('confirm-overlay').classList.add('open');
+    } catch(e){alert('Invalid JSON file.');}
+  };
+  input.click();
+}
+
+// ── Add source ───────────────────────────────────────────
+function openAddSource(){
+  if(!getProj()){alert('Please select a project first.');return;}
+  $('src-name').value='';$('src-text').value='';$('url-in').value='';
+  $('url-preview').style.display='none';$('fetch-status').style.display='none';$('file-status').style.display='none';
+  fetchedContent=null;fetchedUrl=null;pendingFile=null;
+  switchTab('text',$('t-text'));$('src-overlay').classList.add('open');
+}
+function closeSrcModal(){$('src-overlay').classList.remove('open')}
+function switchTab(tab,btn){curTab=tab;['text','url','file'].forEach(t=>{$('t-'+t).classList.toggle('on',t===tab);$('pane-'+t).style.display=t===tab?'block':'none';});}
+
+async function doFetch(){
+  const url=$('url-in').value.trim();if(!url)return;
+  if(!url.startsWith('http://') && !url.startsWith('https://')){showFetch('err','Please enter a valid URL starting with https://');return;}
+  if(!settings.apiKey){alert('URL fetching requires an Anthropic API key. Set it in Settings.');return;}
+  showFetch('loading','Fetching with AI…');$('fetch-btn').disabled=true;$('url-preview').style.display='none';fetchedContent=null;fetchedUrl=null;
+  try {
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,tools:[{type:'web_search_20250305',name:'web_search'}],system:`You are a content extractor. Return ONLY JSON: {"title":"page title","content":"full text"}`,messages:[{role:'user',content:`Fetch: ${url}`}]})});
+    const data=await resp.json();if(data.error)throw new Error(data.error.message);
+    const txt=(data.content||[]).map(b=>b.text||'').join('');const jm=txt.match(/\{[\s\S]*\}/);if(!jm)throw new Error('Could not parse');
+    const parsed=JSON.parse(jm[0]);if(!parsed.content||parsed.content.length<50)throw new Error('Too short');
+    fetchedContent=parsed.content;fetchedUrl=url;
+    $('url-name').value=parsed.title||new URL(url).hostname;$('url-body').value=parsed.content;$('char-ct').textContent=parsed.content.length.toLocaleString()+' chars';
+    $('url-preview').style.display='block';showFetch('ok',`✓ ${parsed.content.length.toLocaleString()} chars extracted`);
+  } catch(err){showFetch('err','Failed: '+err.message);}
+  $('fetch-btn').disabled=false;
+}
+function showFetch(type,msg){const el=$('fetch-status');el.style.display='flex';el.className=`status-box ${type}`;el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);}
+
+function triggerFile(){$('file-in').click()}
+function dov(e){e.preventDefault();$('drop-zone').classList.add('drag')}
+function dol(){$('drop-zone').classList.remove('drag')}
+function dop(e){e.preventDefault();dol();const f=e.dataTransfer.files[0];if(f)loadFile(f)}
+function onFile(e){const f=e.target.files[0];if(f)loadFile(f)}
+
+async function loadFile(file){
+  const s=$('file-status');s.style.display='block';s.style.color='var(--text2)';s.textContent=`Parsing ${file.name}…`;pendingFile=null;
+  const ext='.'+file.name.split('.').pop().toLowerCase();
+  try {
+    let content='',type=ext.slice(1);
+
+    if(ext==='.txt'||ext==='.md'){
+      content=await file.text();
+    } else if(ext==='.html'||ext==='.htm'){
+      const html=await file.text();
+      content=htmlToText(html);
+    } else if(ext==='.pdf'){
+      content=await parsePDF(file);
+    } else if(ext==='.docx'||ext==='.doc'){
+      content=await parseDOCX(file);
+    } else if(ext==='.xlsx'||ext==='.xls'||ext==='.csv'){
+      content=await parseXLSX(file);
+    } else if(ext==='.pptx'||ext==='.ppt'){
+      s.style.color='var(--danger)';s.textContent='⚠️ PPTX files require the desktop app for parsing.';return;
+    } else {
+      s.style.color='var(--danger)';s.textContent=`⚠️ Unsupported file type: ${ext}`;return;
+    }
+
+    if(!content||content.trim().length<10){s.style.color='var(--danger)';s.textContent='⚠️ No text content found in this file.';return;}
+    pendingFile={name:file.name.replace(/\.[^.]+$/,''),content:content.trim()};
+    s.style.color='var(--green)';s.textContent=`✓ ${file.name} — ${content.length.toLocaleString()} chars`;
+  } catch(e){s.style.color='var(--danger)';s.textContent=`⚠️ Failed to parse: ${e.message}`;}
+}
+
+async function parsePDF(file){
+  const arrayBuffer=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  let text='';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    text+=content.items.map(item=>item.str).join(' ')+'\n\n';
+  }
+  return text.trim();
+}
+
+async function parseDOCX(file){
+  const arrayBuffer=await file.arrayBuffer();
+  const result=await mammoth.extractRawText({arrayBuffer});
+  return result.value;
+}
+
+async function parseXLSX(file){
+  const arrayBuffer=await file.arrayBuffer();
+  const workbook=XLSX.read(arrayBuffer,{type:'array'});
+  const lines=[];
+  workbook.SheetNames.forEach(name=>{
+    const csv=XLSX.utils.sheet_to_csv(workbook.Sheets[name],{blankrows:false});
+    if(csv.trim()){lines.push(`--- Sheet: ${name} ---`);lines.push(csv.trim());}
+  });
+  return lines.join('\n\n');
+}
+
+function htmlToText(html){
+  let text=html
+    .replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ')
+    .replace(/<nav[\s\S]*?<\/nav>/gi,' ').replace(/<header[\s\S]*?<\/header>/gi,' ')
+    .replace(/<footer[\s\S]*?<\/footer>/gi,' ')
+    .replace(/<\/?(p|div|h[1-6]|li|br)[^>]*>/gi,'\n').replace(/<[^>]+>/g,' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ');
+  return text.split('\n').map(l=>l.replace(/\s+/g,' ').trim()).filter(l=>l).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+async function addSrc(){
+  const p=getProj();if(!p)return;
+  let name,content,url=null,type='text';
+  if(curTab==='text'){
+    name=$('src-name').value.trim()||'Untitled';content=$('src-text').value.trim();if(!content){alert('Please paste some text.');return;}
+  } else if(curTab==='url'){
+    if(!fetchedContent){alert('Please fetch a URL first.');return;}
+    name=$('url-name').value.trim()||'Web source';content=fetchedContent;url=fetchedUrl;type='url';
+  } else {
+    if(!pendingFile){alert('Please select a file.');return;}
+    name=pendingFile.name;content=pendingFile.content;
+    const ext=($('file-in').files[0]?.name||'').split('.').pop().toLowerCase();type=ext||'file';
+  }
+  p.sources.push({id:uid(),name,type,url,on:true,content});
+  syncNow();renderSources();updateStatus();closeSrcModal();
+}
+
+// ── Confirm ──────────────────────────────────────────────
+function closeConfirm(){$('confirm-overlay').classList.remove('open');confirmCb=null}
+function confirmAction(){if(confirmCb)confirmCb()}
+
+init();
+</script>
+</body>
+</html>

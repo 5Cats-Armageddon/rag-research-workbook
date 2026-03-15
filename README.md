@@ -2,6 +2,8 @@
 
 A research assistant for macOS and Windows. Organize your sources into projects, chat with an AI that answers strictly from your sources, and generate podcasts — all with optional cloud sync.
 
+> **Built with AI** — This application was designed and built in collaboration with [Claude](https://claude.ai) (Anthropic). See [CREDITS.md](CREDITS.md) for details.
+
 ---
 
 ## Installation
@@ -165,6 +167,17 @@ The PDF is likely a scanned image rather than a text-based document. Use an OCR 
 
 **My data isn't syncing**
 Check that your chosen cloud service app is installed and signed in. Click **Sync now** in the left rail to manually trigger a sync and check the status indicator in the title bar.
+
+---
+
+## Run in Claude.ai (no installation required)
+
+RAG Research Workbook can also run directly inside Claude.ai — no download, no install, no API key. It uses your existing Claude.ai subscription automatically.
+
+See [CLAUDE_AI.md](CLAUDE_AI.md) for three ways to use it:
+- **Shareable prompt** — paste one prompt into any Claude.ai conversation
+- **Claude.ai Project** — set up a persistent workspace shared with others
+- **Artifact sharing** — share a direct link to the rendered app
 
 ---
 

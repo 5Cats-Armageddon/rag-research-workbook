@@ -21,18 +21,27 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
+          # Write certificate to a temp file
           echo "$APPLE_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
+
+          # Create a temporary keychain
           security create-keychain -p "temp_password" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "temp_password" build.keychain
           security set-keychain-settings -t 3600 -u build.keychain
+
+          # Import certificate into the temporary keychain
           security import /tmp/certificate.p12 -k build.keychain \
             -P "$APPLE_CERTIFICATE_PASSWORD" \
             -T /usr/bin/codesign \
             -T /usr/bin/security
+
+          # Allow codesign to access the keychain without UI prompts
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s -k "temp_password" build.keychain
+
+          # Clean up temp file
           rm /tmp/certificate.p12
 
       - name: Configure Git
@@ -55,6 +64,7 @@ jobs:
           PUBLISH_FOR_PULL_REQUEST: false
           USE_HARD_LINKS: false
         run: |
+          # Find the certificate identity
           IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | awk '{print $2}')
           echo "Using identity: $IDENTITY"
           export CSC_NAME="$IDENTITY"
@@ -73,6 +83,7 @@ jobs:
           fi
           echo "Notarizing: $DMG"
 
+          # Submit and capture the submission ID
           SUBMIT_OUTPUT=$(xcrun notarytool submit "$DMG" \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_ID_PASSWORD" \
@@ -94,6 +105,7 @@ jobs:
             echo "Submission ID: $SUBMISSION_ID"
             echo "Polling for notarization status..."
 
+            # Poll every 30 seconds for up to 20 minutes
             for i in $(seq 1 40); do
               sleep 30
               STATUS=$(xcrun notarytool info "$SUBMISSION_ID" \
@@ -118,8 +130,26 @@ jobs:
             done
           fi
 
-          xcrun stapler staple "$DMG"
-          echo "Notarization complete"
+          # Wait for Apple's CDN to propagate the ticket before stapling
+          echo "Waiting 60 seconds for notarization ticket to propagate..."
+          sleep 60
+
+          # Staple with retries
+          for attempt in 1 2 3; do
+            echo "Staple attempt $attempt..."
+            if xcrun stapler staple "$DMG"; then
+              echo "Notarization and stapling complete!"
+              break
+            else
+              if [ $attempt -lt 3 ]; then
+                echo "Staple failed, waiting 30 seconds before retry..."
+                sleep 30
+              else
+                echo "Warning: stapling failed after 3 attempts. The DMG is notarized but not stapled."
+                echo "Users can still run the app — notarization is validated online."
+              fi
+            fi
+          done
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
