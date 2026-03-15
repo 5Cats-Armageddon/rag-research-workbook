@@ -16,7 +16,26 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Configure Git to prevent accidental commits
+      - name: Install Apple certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$APPLE_CERTIFICATE" | base64 --decode > /tmp/certificate.p12
+          security create-keychain -p "temp_password" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "temp_password" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import /tmp/certificate.p12 -k build.keychain \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "temp_password" build.keychain
+          rm /tmp/certificate.p12
+
+      - name: Configure Git
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
@@ -25,26 +44,41 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build macOS app
-        run: CSC_IDENTITY_AUTO_DISCOVERY=false npm run build
+      - name: Build and sign macOS app
         env:
-          EP_DRAFT: true
+          CSC_KEYCHAIN: build.keychain
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           EP_PRE_RELEASE: false
-          CSC_IDENTITY_AUTO_DISCOVERY: false
           PUBLISH_FOR_PULL_REQUEST: false
-          # Prevent electron-builder from writing version back to package.json
           USE_HARD_LINKS: false
-
-      - name: Ad-hoc sign the app
         run: |
-          APP_PATH=$(find dist -name "RAG Research Workbook.app" -maxdepth 3 | head -1)
-          if [ -n "$APP_PATH" ]; then
-            echo "Signing: $APP_PATH"
-            codesign --deep --force --sign - "$APP_PATH"
-            echo "Signing complete"
-          else
-            echo "Warning: could not find .app to sign"
+          IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | awk '{print $2}')
+          echo "Using identity: $IDENTITY"
+          export CSC_NAME="$IDENTITY"
+          CSC_IDENTITY_AUTO_DISCOVERY=false npm run build
+
+      - name: Notarize macOS app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG=$(find dist -name "*.dmg" | head -1)
+          if [ -z "$DMG" ]; then
+            echo "No DMG found, skipping notarization"
+            exit 0
           fi
+          echo "Notarizing: $DMG"
+          xcrun notarytool submit "$DMG" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          xcrun stapler staple "$DMG"
+          echo "Notarization complete"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -64,7 +98,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Configure Git to prevent accidental commits
+      - name: Configure Git
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
@@ -75,7 +109,6 @@ jobs:
       - name: Build Windows app
         run: npm run build:win
         env:
-          EP_DRAFT: true
           EP_PRE_RELEASE: false
           PUBLISH_FOR_PULL_REQUEST: false
           USE_HARD_LINKS: false
