@@ -1,6 +1,6 @@
-# RAG Research Workbook v1.1.0
+# RAG Research Workbook v1.2.0
 
-A native macOS research assistant. Organise sources into projects, chat with strict source grounding, sync to iCloud/Dropbox/Google Drive/OneDrive, and run entirely free with local Ollama models.
+A native macOS research assistant. Organize sources into projects, chat with strict source grounding, generate podcasts from your sources, and sync to iCloud/Dropbox/Google Drive/OneDrive. Runs entirely free with local Ollama models.
 
 ---
 
@@ -24,7 +24,7 @@ npm start
 CSC_IDENTITY_AUTO_DISCOVERY=false npm run build
 ```
 
-Drag `dist/mac/RAG Research Workbook.app` to `/Applications`.
+The app is built to `dist/mac-arm64/` (Apple Silicon) or `dist/mac-x64/` (Intel). Drag `RAG Research Workbook.app` to `/Applications`.
 
 If macOS says "unidentified developer": right-click → Open → Open anyway.
 
@@ -62,6 +62,66 @@ Typical cost: ~$0.01–$0.05 per research session.
 
 ---
 
+## Podcast
+
+The Podcast tab generates a listenable podcast from your active sources. Click the **Podcast** tab at the top of the main panel, or use the 🎙️ quick action button in Chat.
+
+### Generating a script
+
+1. Make sure at least one source is active (toggled on) in the sidebar
+2. Choose a **format**: two-host discussion/debate, or single narrator summary
+3. Set a **target length** (2–20 minutes) and **tone/style**
+4. Click **Generate script** — the script is grounded strictly in your sources
+5. Review and edit each line directly in the panel before generating audio
+
+### Generating audio
+
+Click **Generate audio** after the script is ready. The app uses one of two methods depending on your settings:
+
+#### ElevenLabs — high-quality AI voices (recommended)
+
+ElevenLabs produces natural-sounding AI voices with distinct voices for each host.
+
+**Setup:**
+1. Create a free account at https://elevenlabs.io
+2. Go to your profile → API Keys → Create API Key
+3. Set permissions: **Text to Speech → Access**, **Voices → Read**. Leave Sound Effects and Audio Isolation as No Access. Leave the Restrict Key toggle off.
+4. Copy the key and paste it into **Settings (⌘,) → Podcast — ElevenLabs voices**
+
+**Free tier:** 10,000 characters (~10 minutes of audio) per month. Sufficient for regular use.
+
+Output format: **MP3** (exportable via the Save audio button)
+
+#### macOS built-in TTS — free fallback
+
+If no ElevenLabs key is set, the app uses macOS's built-in `say` command. Single voice only, lower quality, but completely free with no setup.
+
+Output format: **AIFF** (exportable via the Save audio button)
+
+### Exporting
+
+- **Export script** — saves the script as `.txt` or `.md` for use in Descript, Podcastle, or any other tool
+- **Save audio** — saves the generated audio as MP3 (ElevenLabs) or AIFF (macOS TTS)
+
+---
+
+## Supported source formats
+
+| Format | Extension(s) | Notes |
+|--------|-------------|-------|
+| PDF | `.pdf` | Text-based PDFs only. Scanned image PDFs will show an error — paste the text manually instead. |
+| Word | `.docx`, `.doc` | Full document text extracted |
+| Excel | `.xlsx`, `.xls`, `.csv` | All sheets extracted, labelled by sheet name |
+| PowerPoint | `.pptx`, `.ppt` | Slide text extracted in order |
+| HTML | `.html`, `.htm` | Navigation, scripts, and ads stripped |
+| Plain text | `.txt`, `.md` | Loaded as-is |
+| Web URL | — | Native (free) or AI-assisted fetch |
+| Pasted text | — | Paste directly into the text tab |
+
+**Audio and video files are not supported.** To use audio/video content, transcribe it externally and paste the transcript as a text source.
+
+---
+
 ## Updates (Option B — build on device)
 
 ### One-time setup
@@ -91,12 +151,12 @@ You'll see a live terminal log of the process. After it finishes, quit and reope
 
 ```bash
 # Bump version in package.json, then:
-git add . && git commit -m "v1.2.0"
-git tag v1.2.0
+git add . && git commit -m "v1.3.0"
+git tag v1.3.0
 git push && git push --tags
 ```
 
-The app checks the latest GitHub release tag against the version in its own `package.json`.
+Then create a release on GitHub for that tag. The app checks the latest GitHub release tag against its own `package.json` version.
 
 ### Switching to Option A (electron-updater) later
 
@@ -135,7 +195,7 @@ With **Auto-sync** on, data is written on every change. The sync dot (●) in th
 | Export current chat | ⌘⇧E |
 | Toggle dark mode | ⌘⇧D |
 | Send message | ↵ |
-| New line | ⇧↵ |
+| New line in message | ⇧↵ |
 
 ---
 
@@ -143,12 +203,12 @@ With **Auto-sync** on, data is written on every change. The sync dot (●) in th
 
 ```
 rag-research-workbook/
-├── package.json      # version, build config
+├── package.json      # version, build config, dependencies
 ├── src/
-│   ├── main.js       # Electron main process (Node.js, file I/O, shell commands)
-│   ├── preload.js    # Secure IPC bridge
-│   └── index.html    # Full UI
-└── assets/           # App icon (add icon.icns for custom icon)
+│   ├── main.js       # Electron main process (Node.js, file I/O, TTS, shell commands)
+│   ├── preload.js    # Secure IPC bridge between main and renderer
+│   └── index.html    # Full UI (chat, podcast, settings, modals)
+└── assets/           # App icon (add icon.icns for a custom icon)
 ```
 
 ---
@@ -159,13 +219,29 @@ rag-research-workbook/
 Make sure Ollama is running: `ollama serve`
 Check the host field matches — default is `http://localhost:11434`
 
+**ElevenLabs voices not loading**
+Check your API key in Settings. Make sure the key has Text to Speech → Access and Voices → Read permissions. The Restrict Key toggle should be off.
+
+**ElevenLabs audio generation stops mid-script**
+You may have hit your monthly character limit (10,000 on the free tier). Lines generated before the limit was hit are still valid.
+
+**macOS TTS produces no audio**
+Try running `say "hello"` in Terminal to confirm TTS is working on your system.
+
+**PDF shows "no text found"**
+The PDF is likely a scanned image rather than a text-based PDF. Copy and paste the text manually, or use an OCR tool first.
+
 **"App is damaged" on macOS**
 ```bash
-xattr -cr /Applications/RAG Research Workbook.app
+xattr -cr "/Applications/RAG Research Workbook.app"
 ```
 
 **Update fails with "Repo path not found"**
 Make sure the path in Settings points to the folder containing `package.json`, not a parent folder.
 
 **git pull fails during update**
-You may have uncommitted local changes. In Terminal: `cd ~/code/rag-research-workbook && git stash && git pull`
+You may have uncommitted local changes. In Terminal:
+```bash
+cd ~/code/rag-research-workbook && git stash && git pull
+```
+
