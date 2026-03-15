@@ -10,9 +10,11 @@
     "build:all": "electron-builder --mac --win",
     "pack": "electron-builder --dir"
   },
+  "author": "5Cats-Armageddon",
   "build": {
     "appId": "com.ragresearchworkbook.app",
     "productName": "RAG Research Workbook",
+    "publish": null,
     "files": [
       "src/**/*",
       "assets/**/*",

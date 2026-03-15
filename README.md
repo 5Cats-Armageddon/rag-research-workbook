@@ -24,10 +24,8 @@ npm start
 ```bash
 CSC_IDENTITY_AUTO_DISCOVERY=false npm run build
 ```
-
 Output: `dist/mac-arm64/` (Apple Silicon) or `dist/mac-x64/` (Intel)
 Drag `RAG Research Workbook.app` to `/Applications`.
-
 If macOS says "unidentified developer": right-click → Open → Open anyway.
 
 **Windows:**
@@ -102,7 +100,6 @@ Typical cost: ~$0.01–$0.05 per research session.
 ---
 
 ## Podcast
-
 
 The Podcast tab generates a listenable podcast from your active sources.
 
@@ -253,18 +250,6 @@ Run in PowerShell: `Add-Type -AssemblyName System.Speech; (New-Object System.Spe
 **PDF shows "no text found"**
 The PDF is a scanned image. Use an OCR tool first, or copy and paste the text manually.
 
-**ElevenLabs voices not loading**
-Check your API key in Settings. Make sure the key has Text to Speech → Access and Voices → Read permissions. The Restrict Key toggle should be off.
-
-**ElevenLabs audio generation stops mid-script**
-You may have hit your monthly character limit (10,000 on the free tier). Lines generated before the limit was hit are still valid.
-
-**macOS TTS produces no audio**
-Try running `say "hello"` in Terminal to confirm TTS is working on your system.
-
-**PDF shows "no text found"**
-The PDF is likely a scanned image rather than a text-based PDF. Copy and paste the text manually, or use an OCR tool first.
-
 **"App is damaged" on macOS**
 ```bash
 xattr -cr "/Applications/RAG Research Workbook.app"
@@ -277,7 +262,6 @@ Click "More info" → "Run anyway". This happens because the app isn't code-sign
 The path in Settings must point to the folder containing `package.json`.
 
 **git pull fails during update**
-
 ```bash
 cd ~/path/to/rag-research-workbook
 git stash
