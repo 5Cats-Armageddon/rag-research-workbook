@@ -16,6 +16,12 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Configure Git to prevent accidental commits
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git config --global core.safecrlf false
+
       - name: Install dependencies
         run: npm install
 
@@ -25,8 +31,9 @@ jobs:
           EP_DRAFT: true
           EP_PRE_RELEASE: false
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # PUBLISH_FOR_PULL_REQUEST=false tells electron-builder not to publish
           PUBLISH_FOR_PULL_REQUEST: false
+          # Prevent electron-builder from writing version back to package.json
+          USE_HARD_LINKS: false
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -46,6 +53,11 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Configure Git to prevent accidental commits
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
       - name: Install dependencies
         run: npm install
 
@@ -55,6 +67,7 @@ jobs:
           EP_DRAFT: true
           EP_PRE_RELEASE: false
           PUBLISH_FOR_PULL_REQUEST: false
+          USE_HARD_LINKS: false
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
