@@ -1,12 +1,25 @@
-# RAG Research Workbook v1.2.3
+# RAG Research Workbook v1.2.5
 
-A research assistant for macOS and Windows. Organize your sources into projects, chat with an AI that answers strictly from your sources, and generate podcasts — all with optional cloud sync.
+A research assistant for macOS, Windows, and browser. Organize your sources into projects, chat with an AI that answers strictly from your sources, and generate podcasts — all with optional cloud sync.
 
 > **Built with AI** — This application was designed and built in collaboration with [Claude](https://claude.ai) (Anthropic). See [CREDITS.md](CREDITS.md) for details.
 
 ---
 
-## Installation
+## Ways to use RAG Research Workbook
+
+| | Desktop app | Browser version | Claude.ai |
+|--|------------|----------------|-----------|
+| Installation | Download & install | None | None |
+| Requires | macOS or Windows | Any modern browser | Claude.ai account |
+| AI provider | Anthropic or Ollama | Anthropic API key | Built-in (your subscription) |
+| Cloud sync | iCloud, Dropbox, Drive, OneDrive | Google Drive (optional) | localStorage only |
+| Works offline | Yes (with Ollama) | No | No |
+| Podcast audio export | MP3 / AIFF / WAV | MP3 (ElevenLabs) | Browser playback only |
+
+---
+
+## Installation — Desktop app
 
 ### macOS
 
@@ -15,7 +28,7 @@ A research assistant for macOS and Windows. Organize your sources into projects,
 3. Drag **RAG Research Workbook** into your **Applications** folder
 4. Open it from Applications or Launchpad
 
-> **"Unidentified developer" warning?** Right-click the app → **Open** → **Open anyway**. This only appears once. It happens because the app isn't code-signed with an Apple developer certificate.
+> **Note:** Starting with v1.2.4, the app is properly signed and notarized by Apple — it should open without any warnings. If you're on an older version and see a warning, right-click the app → **Open** → **Open anyway**.
 
 ### Windows
 
@@ -26,6 +39,34 @@ A research assistant for macOS and Windows. Organize your sources into projects,
 > **Windows Defender warning?** Click **More info** → **Run anyway**. This appears because the app isn't code-signed. It's safe to proceed.
 
 **Prefer no installation?** Download the portable **`RAG Research Workbook x.x.x.exe`** instead — just run it directly, no installation needed.
+
+---
+
+## Browser version (no installation required)
+
+The full app runs in any modern browser — no download, no installation, no account needed beyond an Anthropic API key or Ollama running locally.
+
+**Open it here:** **https://5cats-armageddon.github.io/rag-research-workbook/**
+
+The browser version includes all projects, sources, chat, and podcast features with localStorage for automatic data persistence, export/import JSON for manual backup, and optional Google Drive sync.
+
+**Limitations vs the desktop app:**
+- Requires an Anthropic API key or Ollama (no built-in AI)
+- No iCloud, Dropbox, or OneDrive sync (localStorage + Google Drive only)
+- PPTX files not supported (all other formats work)
+- Podcast audio plays in browser but requires ElevenLabs for MP3 download
+
+---
+
+## Claude.ai version (no installation, no API key)
+
+RAG Research Workbook can run directly inside Claude.ai using your existing subscription — no API key, no download, no setup.
+
+**Three ways to use it — see [CLAUDE_AI.md](CLAUDE_AI.md) for full instructions:**
+
+1. **Shareable prompt** — paste one prompt into any Claude.ai conversation and the app renders as an interactive artifact instantly
+2. **Claude.ai Project** — set up a persistent workspace so the app is always ready when you open that Project; share it with others
+3. **Published artifact** — share a direct link to the rendered app that anyone can open in their browser, even without a Claude.ai account
 
 ---
 
@@ -92,7 +133,7 @@ You can export the script as a text file or save the audio as MP3, AIFF, or WAV.
 | PDF | `.pdf` |
 | Word | `.docx`, `.doc` |
 | Excel | `.xlsx`, `.xls`, `.csv` |
-| PowerPoint | `.pptx`, `.ppt` |
+| PowerPoint | `.pptx`, `.ppt` (desktop app only) |
 | HTML | `.html`, `.htm` |
 | Plain text | `.txt`, `.md` |
 | Web URL | via the From URL tab |
@@ -105,13 +146,14 @@ You can export the script as a text file or save the audio as MP3, AIFF, or WAV.
 
 Open **Settings → Cloud sync** to automatically back up your projects and sources to a cloud folder.
 
-| Service | Mac | Windows |
-|---------|:---:|:-------:|
-| iCloud Drive | ✓ | ✗ |
-| Dropbox | ✓ | ✓ |
-| Google Drive | ✓ | ✓ |
-| OneDrive | ✓ | ✓ |
-| Custom folder | ✓ | ✓ |
+| Service | Mac | Windows | Browser |
+|---------|:---:|:-------:|:-------:|
+| iCloud Drive | ✓ | ✗ | ✗ |
+| Dropbox | ✓ | ✓ | ✗ |
+| Google Drive | ✓ | ✓ | ✓ |
+| OneDrive | ✓ | ✓ | ✗ |
+| Custom folder | ✓ | ✓ | ✗ |
+| localStorage | — | — | ✓ |
 
 With **Auto-sync** enabled, your data is saved automatically on every change. You can also sync manually using the **Sync now** button in the left rail.
 
@@ -136,19 +178,17 @@ With **Auto-sync** enabled, your data is saved automatically on every change. Yo
 
 Click **Check for update** in the left rail to see if a newer version is available. Download the latest installer from the [Releases page](https://github.com/5Cats-Armageddon/rag-research-workbook/releases) and install it over the existing version.
 
+The browser version at https://5cats-armageddon.github.io/rag-research-workbook/ always serves the latest version automatically — no update needed.
+
 ---
 
 ## Troubleshooting
 
-**The app won't open on macOS ("unidentified developer")**
-Right-click the app → Open → Open anyway. You only need to do this once.
-
-**The app won't open on macOS ("app is damaged")**
-Open Terminal and run:
+**The app won't open on macOS ("unidentified developer" or "app is damaged")**
+Download v1.2.4 or later — these versions are properly signed and notarized and open without warnings. If you need to run an older version, open Terminal and run:
 ```
 xattr -cr "/Applications/RAG Research Workbook.app"
 ```
-Then try opening again.
 
 **Windows Defender blocks the installer**
 Click More info → Run anyway. The app is safe — this warning appears because it isn't code-signed.
@@ -168,16 +208,8 @@ The PDF is likely a scanned image rather than a text-based document. Use an OCR 
 **My data isn't syncing**
 Check that your chosen cloud service app is installed and signed in. Click **Sync now** in the left rail to manually trigger a sync and check the status indicator in the title bar.
 
----
-
-## Run in Claude.ai (no installation required)
-
-RAG Research Workbook can also run directly inside Claude.ai — no download, no install, no API key. It uses your existing Claude.ai subscription automatically.
-
-See [CLAUDE_AI.md](CLAUDE_AI.md) for three ways to use it:
-- **Shareable prompt** — paste one prompt into any Claude.ai conversation
-- **Claude.ai Project** — set up a persistent workspace shared with others
-- **Artifact sharing** — share a direct link to the rendered app
+**The browser version isn't saving my data**
+The browser version uses localStorage which is tied to your specific browser on your specific device. Use Export backup to save a JSON file, or connect Google Drive for cross-device sync.
 
 ---
 

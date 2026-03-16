@@ -1,6 +1,6 @@
 {
   "name": "rag-research-workbook",
-  "version": "1.2.3",
+  "version": "1.2.5",
   "description": "RAG Research Workbook — AI-powered research assistant",
   "main": "src/main.js",
   "scripts": {

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+
+  <!-- Background -->
+  <rect x="0" y="0" width="512" height="512" rx="102" fill="#042C53"/>
+  <rect x="0" y="0" width="512" height="512" rx="102" fill="none" stroke="#378ADD" stroke-width="2.5"/>
+
+  <!-- ── CONNECTIONS (drawn first so nodes render on top) ── -->
+  <line x1="256" y1="86"  x2="170" y2="163.8" stroke="#5b7ef5" stroke-width="2.9" opacity="0.7"/>
+  <line x1="256" y1="86"  x2="256" y2="163.8" stroke="#5b7ef5" stroke-width="2.9" opacity="0.7"/>
+  <line x1="256" y1="86"  x2="342" y2="163.8" stroke="#5b7ef5" stroke-width="2.9" opacity="0.7"/>
+  <line x1="170" y1="163.8" x2="202.8" y2="237.6" stroke="#85B7EB" stroke-width="2.3" opacity="0.6"/>
+  <line x1="170" y1="163.8" x2="256"   y2="237.6" stroke="#85B7EB" stroke-width="1.6" opacity="0.3"/>
+  <line x1="256" y1="163.8" x2="256"   y2="237.6" stroke="#85B7EB" stroke-width="2.3" opacity="0.6"/>
+  <line x1="342" y1="163.8" x2="309.2" y2="237.6" stroke="#85B7EB" stroke-width="2.3" opacity="0.6"/>
+  <line x1="342" y1="163.8" x2="256"   y2="237.6" stroke="#85B7EB" stroke-width="1.6" opacity="0.3"/>
+
+  <!-- ── NODES ── -->
+  <!-- Row 3 -->
+  <circle cx="202.8" cy="237.6" r="20.5" fill="#85B7EB"/>
+  <circle cx="256"   cy="237.6" r="20.5" fill="#85B7EB"/>
+  <circle cx="309.2" cy="237.6" r="20.5" fill="#85B7EB"/>
+  <!-- Row 2 -->
+  <circle cx="170" cy="163.8" r="24.6" fill="#5b7ef5"/>
+  <circle cx="256" cy="163.8" r="24.6" fill="#5b7ef5"/>
+  <circle cx="342" cy="163.8" r="24.6" fill="#5b7ef5"/>
+  <!-- Row 1 -->
+  <circle cx="256" cy="86" r="28.7" fill="#378ADD"/>
+  <circle cx="256" cy="86" r="11.3" fill="#E6F1FB" opacity="0.95"/>
+
+  <!-- ── SEPARATOR ── -->
+  <line x1="57.3" y1="276.5" x2="454.7" y2="276.5" stroke="#378ADD" stroke-width="1" opacity="0.3"/>
+
+  <!-- Dashed connectors -->
+  <line x1="202.8" y1="258" x2="184.3" y2="292.9" stroke="#85B7EB" stroke-width="1.6" opacity="0.4" stroke-dasharray="4 3"/>
+  <line x1="256"   y1="258" x2="256"   y2="292.9" stroke="#85B7EB" stroke-width="1.6" opacity="0.4" stroke-dasharray="4 3"/>
+  <line x1="309.2" y1="258" x2="327.7" y2="292.9" stroke="#85B7EB" stroke-width="1.6" opacity="0.4" stroke-dasharray="4 3"/>
+
+  <!-- ── RECTANGLES ── -->
+  <!-- Back layer -->
+  <rect x="112.6" y="376.8" width="327.7" height="65.5" rx="14" fill="#0C447C" stroke="#185FA5" stroke-width="1.4" opacity="0.6"/>
+  <!-- Mid layer -->
+  <rect x="92.2"  y="348.2" width="327.7" height="65.5" rx="14" fill="#185FA5" stroke="#378ADD" stroke-width="1.6" opacity="0.75"/>
+  <!-- Front (top-left) layer -->
+  <rect x="71.7"  y="319.5" width="327.7" height="65.5" rx="14" fill="#378ADD" stroke="#85B7EB" stroke-width="2"/>
+
+  <!-- White lines on front layer — scaled from approved 64px positions -->
+  <line x1="104.4" y1="346.1" x2="329.7" y2="346.1" stroke="#E6F1FB" stroke-width="4.5" stroke-linecap="round" opacity="0.75"/>
+  <line x1="104.4" y1="366.6" x2="276.5" y2="366.6" stroke="#E6F1FB" stroke-width="4.5" stroke-linecap="round" opacity="0.5"/>
+
+</svg>
