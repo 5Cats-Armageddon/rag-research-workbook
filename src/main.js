@@ -558,7 +558,7 @@ ipcMain.handle('run-update-b', async (e, { repoPath }) => {
     let appSrc = null;
 
     if (IS_MAC) {
-      const macFolders = [`dist/mac-${arch}`, 'dist/mac', 'dist/mac-universal'];
+      const macFolders = ['dist/mac-universal', `dist/mac-${arch}`, 'dist/mac'];
       for (const folder of macFolders) {
         const candidate = path.join(expanded, folder, 'RAG Research Workbook.app');
         if (fs.existsSync(candidate)) { appSrc = candidate; break; }
@@ -574,7 +574,9 @@ ipcMain.handle('run-update-b', async (e, { repoPath }) => {
       }
       if (!appSrc) throw new Error('Could not find RAG Research Workbook.app in dist/');
       send(`► Found: ${appSrc}\n`);
-      send('\n► Copying to /Applications…\n');
+      send('\n► Removing old version from /Applications…\n');
+      await runCommand('rm -rf "/Applications/RAG Research Workbook.app"', expanded, send);
+      send('\n► Copying new version to /Applications…\n');
       await runCommand(`cp -r "${appSrc}" "/Applications/RAG Research Workbook.app"`, expanded, send);
     }
 

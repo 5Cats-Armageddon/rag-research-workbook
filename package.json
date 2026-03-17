@@ -1,6 +1,6 @@
 {
   "name": "rag-research-workbook",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "RAG Research Workbook — AI-powered research assistant",
   "main": "src/main.js",
   "scripts": {
@@ -22,7 +22,10 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": ["dmg", "zip"],
+      "target": [
+        { "target": "dmg", "arch": ["universal"] },
+        { "target": "zip", "arch": ["universal"] }
+      ],
       "icon": "assets/icon.icns",
       "notarize": false
     },
