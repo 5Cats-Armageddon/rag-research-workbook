@@ -16,11 +16,13 @@
   --warn:#92400e;--warn-bg:#fef3c7;--warn-border:#fcd34d;
   --danger:#991b1b;--danger-bg:#fee2e2;--danger-border:#fca5a5;
   --purple:#6d28d9;--purple-bg:#ede9fe;--purple-border:#c4b5fd;
+  --teal:#0d9488;--teal-bg:#ccfbf1;--teal-border:#99f6e4;
   --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
   --r:8px;--rl:12px;
   --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
   --sh-lg:0 4px 20px rgba(0,0,0,.13);
   --titlebar:28px;
+  --font-size:14px;
 }
 body.dark{
   --bg:#1a1917;--surface:#242320;--surface2:#2e2c29;--surface3:#383532;
@@ -31,8 +33,11 @@ body.dark{
   --warn:#fbbf24;--warn-bg:#2d2410;--warn-border:#78510a;
   --danger:#f87171;--danger-bg:#2d1010;--danger-border:#7b2020;
   --purple:#a78bfa;--purple-bg:#2d1f5e;--purple-border:#5b3fa8;
+  --teal:#2dd4bf;--teal-bg:#0d2b27;--teal-border:#0f766e;
 }
-body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:14px;line-height:1.5;transition:background .2s,color .2s}
+body.font-sm{--font-size:12px}
+body.font-lg{--font-size:16px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-size:var(--font-size);line-height:1.5;transition:background .2s,color .2s}
 
 /* Title bar */
 .titlebar{height:var(--titlebar);-webkit-app-region:drag;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding-left:80px;gap:8px;flex-shrink:0}
@@ -41,6 +46,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 .sync-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--border2)}
 .sync-dot.ok{background:#10b981}.sync-dot.syncing{background:#f59e0b;animation:pulse .8s ease-in-out infinite}.sync-dot.err{background:#ef4444}
+.save-confirm{font-size:10px;color:var(--green);opacity:0;transition:opacity .3s;font-weight:500}
+.save-confirm.show{opacity:1}
 .ai-badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;border:1px solid}
 .ai-badge.anthropic{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
 .ai-badge.ollama{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
@@ -73,30 +80,49 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 .rail-btn:hover{background:var(--surface2);color:var(--text)}
 .rail-btn svg{width:12px;height:12px;stroke:currentColor;flex-shrink:0}
 
-/* Sidebar */
-.sidebar{width:230px;min-width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.sb-head{padding:12px 12px 8px;border-bottom:1px solid var(--border)}
+/* Sources sidebar */
+.sidebar{width:240px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:10px 12px 6px;border-bottom:1px solid var(--border)}
 .sb-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
 .sb-proj-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sources-scroll{flex:1;overflow-y:auto;padding:6px}
-.source-item{padding:7px 8px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all .12s;display:flex;align-items:flex-start;gap:7px;margin-bottom:2px}
+.src-search-wrap{padding:6px 8px;border-bottom:1px solid var(--border);position:relative}
+.src-search{width:100%;border:1px solid var(--border2);border-radius:var(--r);background:var(--surface2);padding:5px 8px 5px 26px;font-size:11px;font-family:var(--font);color:var(--text);outline:none;transition:border-color .12s}
+.src-search:focus{border-color:var(--accent);background:var(--surface)}
+.src-search::placeholder{color:var(--text3)}
+.src-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:11px;height:11px;stroke:var(--text3);pointer-events:none}
+.src-filter-row{padding:4px 8px 6px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.tag-pill{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:var(--font);transition:all .12s;white-space:nowrap}
+.tag-pill:hover{border-color:var(--accent);color:var(--accent)}
+.tag-pill.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+.sources-scroll{flex:1;overflow-y:auto;padding:4px}
+.source-item{padding:7px 8px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all .12s;display:flex;align-items:flex-start;gap:7px;margin-bottom:2px;position:relative}
 .source-item:hover{background:var(--surface2);border-color:var(--border)}
 .source-item.active{background:var(--accent-bg);border-color:var(--accent-border)}
+.source-item.drag-over{border-color:var(--accent);background:var(--accent-bg);opacity:.7}
+.src-checkbox{width:13px;height:13px;flex-shrink:0;margin-top:3px;opacity:0;transition:opacity .12s;cursor:pointer;accent-color:var(--accent)}
+.source-item:hover .src-checkbox{opacity:1}
+.src-checkbox.checked{opacity:1}
 .src-icon{width:22px;height:22px;border-radius:4px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px}
 .src-info{flex:1;min-width:0}
 .src-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.src-preview{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.src-summary{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.src-meta{font-size:10px;color:var(--text3);margin-top:1px;display:flex;gap:6px;align-items:center}
+.src-tag{font-size:9px;padding:1px 5px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text3)}
 .src-toggle{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;margin-top:3px;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center}
 .src-toggle.on{background:var(--accent);border-color:var(--accent)}
 .src-toggle.on::after{content:'';width:5px;height:5px;background:white;border-radius:50%}
+.src-bulk-bar{padding:6px 8px;border-bottom:1px solid var(--border);background:var(--accent-bg);display:none;align-items:center;gap:6px;font-size:11px;color:var(--accent)}
+.src-bulk-bar.show{display:flex}
+.src-bulk-btn{padding:3px 8px;border-radius:5px;border:1px solid var(--accent-border);background:transparent;color:var(--accent);font-size:10px;cursor:pointer;font-family:var(--font);transition:all .12s}
+.src-bulk-btn:hover{background:var(--accent);color:white}
+.src-bulk-btn.danger{border-color:var(--danger-border);color:var(--danger)}
+.src-bulk-btn.danger:hover{background:var(--danger);color:white}
 .add-src-btn{margin:6px;padding:7px;border-radius:var(--r);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .12s}
 .add-src-btn:hover{background:var(--surface2);border-style:solid;color:var(--text)}
 
 /* Main */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-
-/* Main tabs (Chat / Podcast) */
-.main-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 16px;gap:0;flex-shrink:0}
+.main-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 16px;flex-shrink:0}
 .main-tab{padding:10px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;display:flex;align-items:center;gap:6px;font-family:var(--font)}
 .main-tab:hover{color:var(--text2)}
 .main-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -105,35 +131,48 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 .tab-panel.active{display:flex}
 
 /* Chat */
-.chat-header{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:10px}
+.chat-header{padding:8px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:8px;flex-shrink:0}
 .chat-title{font-size:13px;font-weight:500}
 .chat-sub{font-size:10px;color:var(--text3);margin-top:1px}
-.hdr-btn{padding:4px 8px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.thread-selector{display:flex;align-items:center;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.thread-selector::-webkit-scrollbar{display:none}
+.thread-tab{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all .12s;display:flex;align-items:center;gap:4px;flex-shrink:0}
+.thread-tab:hover{border-color:var(--accent);color:var(--accent)}
+.thread-tab.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+.thread-tab .thread-close{font-size:13px;line-height:1;opacity:.5;margin-left:2px}
+.thread-tab .thread-close:hover{opacity:1}
+.new-thread-btn{width:22px;height:22px;border-radius:50%;border:1px dashed var(--border2);background:transparent;color:var(--text3);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+.new-thread-btn:hover{border-color:var(--accent);color:var(--accent);border-style:solid}
+.hdr-btn{padding:4px 8px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0}
 .hdr-btn:hover{background:var(--surface2);color:var(--text)}
 .hdr-btn svg{width:10px;height:10px;stroke:currentColor}
 .messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
 .empty-icon{font-size:32px;margin-bottom:10px;opacity:.6}
-.empty-state h3{font-size:15px;font-weight:500;color:var(--text);margin-bottom:5px}
-.empty-state p{font-size:12px;color:var(--text3);max-width:250px;line-height:1.6}
 .proj-home{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
 .proj-home-emoji{font-size:44px;margin-bottom:14px}
 .proj-home h2{font-size:19px;font-weight:500;margin-bottom:6px}
 .proj-home p{font-size:13px;color:var(--text2);max-width:280px;line-height:1.6;margin-bottom:18px}
-.message{display:flex;gap:8px}.message.user{flex-direction:row-reverse}
+.message{display:flex;gap:8px}
+.message.user{flex-direction:row-reverse}
 .avatar{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;margin-top:2px}
 .avatar.ai{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
 .avatar.ai.ollama{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
 .avatar.user{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
-.bubble{max-width:72%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.65}
-.message.user .bubble{background:var(--accent);color:white;border-radius:12px 3px 12px 12px}
+.bubble{max-width:72%;padding:8px 12px;border-radius:12px;font-size:var(--font-size);line-height:1.65;position:relative}
+.message.user .bubble{background:var(--accent);color:white;border-radius:12px 3px 12px 12px;cursor:pointer}
+.message.user .bubble:hover::after{content:'✏️ click to edit';position:absolute;bottom:-18px;right:0;font-size:10px;color:var(--text3);white-space:nowrap}
 .message.ai .bubble{background:var(--surface);border:1px solid var(--border);border-radius:3px 12px 12px 12px;box-shadow:var(--sh)}
 .bubble p{margin:0 0 6px}.bubble p:last-child{margin-bottom:0}
 .bubble strong{font-weight:500}
 .bubble ul{padding-left:15px;margin:3px 0}.bubble li{margin-bottom:2px}
-.cite{display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:1px 5px;border-radius:3px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);vertical-align:middle;margin:0 1px;font-weight:500}
+.cite-inline{display:inline-flex;align-items:center;gap:2px;font-size:10px;padding:1px 5px;border-radius:3px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);vertical-align:middle;margin:0 1px;font-weight:500}
 .bubble.oos{border-color:var(--warn-border);background:var(--warn-bg)}
 .oos-label{font-size:10px;color:var(--warn);display:flex;align-items:center;gap:3px;margin-bottom:4px;font-weight:500}
+.cited-sources{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text3)}
+.cited-sources strong{color:var(--text2);font-weight:500}
+.cited-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.cited-chip{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
 .thinking{display:flex;gap:4px;align-items:center}
 .thinking span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:bounce 1.3s ease-in-out infinite}
 .thinking span:nth-child(2){animation-delay:.18s}.thinking span:nth-child(3){animation-delay:.36s}
@@ -143,14 +182,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);height:100vh
 .quick{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;transition:all .12s;white-space:nowrap;font-family:var(--font)}
 .quick:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
 .input-row{display:flex;gap:7px;align-items:flex-end}
-textarea#chat-input{flex:1;border:1px solid var(--border2);border-radius:var(--rl);background:var(--surface2);padding:8px 12px;font-size:13px;color:var(--text);resize:none;min-height:38px;max-height:120px;font-family:var(--font);line-height:1.5;outline:none;transition:border-color .12s,background .12s}
+textarea#chat-input{flex:1;border:1px solid var(--border2);border-radius:var(--rl);background:var(--surface2);padding:8px 12px;font-size:var(--font-size);color:var(--text);resize:none;min-height:38px;max-height:120px;font-family:var(--font);line-height:1.5;outline:none;transition:border-color .12s,background .12s}
 textarea#chat-input:focus{border-color:var(--accent);background:var(--surface)}
 textarea#chat-input::placeholder{color:var(--text3)}
 .send{width:34px;height:34px;border-radius:9px;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
 .send:hover{background:#1e47cc}.send:disabled{background:var(--border);cursor:not-allowed}
 .send svg{width:14px;height:14px;stroke:white}
 
-/* ── Podcast tab ── */
+/* Podcast */
 .podcast-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .podcast-top{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:10px}
 .podcast-config{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -158,7 +197,6 @@ textarea#chat-input::placeholder{color:var(--text3)}
 .pod-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;font-weight:500}
 .pod-select,.pod-input{border:1px solid var(--border2);border-radius:var(--r);padding:5px 8px;font-size:12px;font-family:var(--font);color:var(--text);background:var(--surface2);outline:none;transition:border-color .12s}
 .pod-select:focus,.pod-input:focus{border-color:var(--accent);background:var(--surface)}
-.pod-select{cursor:pointer}
 .length-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
 .length-row input[type=range]{flex:1}
 .podcast-actions{display:flex;gap:8px;align-items:center}
@@ -170,16 +208,14 @@ textarea#chat-input::placeholder{color:var(--text3)}
 .script-area{flex:1;overflow-y:auto;padding:16px}
 .script-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;color:var(--text3)}
 .script-empty .se-icon{font-size:36px;margin-bottom:10px;opacity:.5}
-.script-empty p{font-size:12px;max-width:260px;line-height:1.6}
 .script-line{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
 .script-speaker{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;white-space:nowrap;margin-top:2px;flex-shrink:0}
 .script-speaker.host1{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
 .script-speaker.host2{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
 .script-speaker.narrator{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
-.script-text{font-size:13px;line-height:1.65;color:var(--text);flex:1;background:var(--surface2);border-radius:var(--r);padding:7px 10px;border:1px solid var(--border)}
+.script-text{font-size:var(--font-size);line-height:1.65;color:var(--text);flex:1;background:var(--surface2);border-radius:var(--r);padding:7px 10px;border:1px solid var(--border)}
 .script-text:focus{outline:none;border-color:var(--accent);background:var(--surface)}
-
-/* Podcast audio player */
+.script-cite{font-size:10px;color:var(--text3);margin-top:4px;font-style:italic}
 .podcast-player{padding:12px 16px;border-top:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;gap:8px}
 .player-controls{display:flex;align-items:center;gap:10px}
 .play-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--purple);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
@@ -190,19 +226,13 @@ textarea#chat-input::placeholder{color:var(--text3)}
 .progress-bar{width:100%;height:4px;background:var(--border);border-radius:2px;cursor:pointer;appearance:none;outline:none}
 .progress-bar::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:var(--purple);cursor:pointer}
 .time-label{font-size:10px;color:var(--text3);display:flex;justify-content:space-between}
-.player-actions{display:flex;gap:6px}
+.player-actions{display:flex;gap:6px;flex-wrap:wrap}
 .pod-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px}
 .pod-status.generating{color:var(--purple)}
-.pod-progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:2px}
+.pod-progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
 .pod-progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width .3s}
-
-/* Voice config row */
 .voice-config{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
 .voice-label{font-size:10px;color:var(--text3);margin-bottom:3px;font-weight:500}
-.voice-row{display:flex;gap:6px;align-items:center}
-.voice-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.voice-dot.h1{background:var(--accent)}
-.voice-dot.h2{background:var(--purple)}
 
 /* Source panel */
 .panel{width:290px;min-width:290px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;overflow:hidden}
@@ -251,10 +281,8 @@ select.field{cursor:pointer}
 .btn-solid:disabled{background:var(--border2);cursor:not-allowed;opacity:.6}
 .btn-green{border:none;background:var(--green);color:white;font-weight:500}
 .btn-green:hover{filter:brightness(1.1)}
-.btn-green:disabled{opacity:.5;cursor:not-allowed}
 .btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
 .btn-danger:hover{background:#fecaca}
-.path-display{font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 8px;margin-top:-6px;margin-bottom:10px;word-break:break-all;line-height:1.5}
 .setting-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:12px}
 .setting-label{font-size:12px;color:var(--text)}
 .setting-desc{font-size:10px;color:var(--text3);margin-top:1px}
@@ -285,6 +313,30 @@ select.field{cursor:pointer}
 .ollama-status.ok{background:var(--green-bg);color:var(--green)}
 .ollama-status.err{background:var(--danger-bg);color:var(--danger)}
 .ollama-status.checking{background:var(--surface2);color:var(--text3)}
+.font-size-btns{display:flex;gap:6px}
+.font-size-btn{padding:5px 12px;border-radius:var(--r);border:1px solid var(--border);background:transparent;font-family:var(--font);cursor:pointer;color:var(--text2);transition:all .12s}
+.font-size-btn.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+.font-size-btn:hover:not(.active){background:var(--surface2);color:var(--text)}
+
+/* Tag input */
+.tag-input-row{display:flex;gap:6px;margin-bottom:6px}
+.tag-input-row input{flex:1;margin-bottom:0}
+.tags-display{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.tag-badge{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal-border);display:flex;align-items:center;gap:4px}
+.tag-badge .remove-tag{cursor:pointer;opacity:.6;font-size:13px;line-height:1}
+.tag-badge .remove-tag:hover{opacity:1}
+
+/* Onboarding */
+.onboarding-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.onboarding-card{background:var(--surface);border-radius:var(--rl);border:1px solid var(--border);box-shadow:var(--sh-lg);padding:28px;width:420px;max-width:90vw;text-align:center}
+.onboarding-icon{font-size:40px;margin-bottom:12px}
+.onboarding-card h2{font-size:18px;font-weight:500;margin-bottom:8px}
+.onboarding-card p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:20px}
+.onboarding-steps{display:flex;justify-content:center;gap:6px;margin-bottom:20px}
+.onboarding-step{width:8px;height:8px;border-radius:50%;background:var(--border2);transition:background .2s}
+.onboarding-step.active{background:var(--accent)}
+.onboarding-step.done{background:var(--green)}
+
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 </style>
 </head>
@@ -293,6 +345,7 @@ select.field{cursor:pointer}
 <div class="titlebar">
   <span class="app-name">RAG Research Workbook</span>
   <div class="sync-area">
+    <span class="save-confirm" id="save-confirm">✓ Saved</span>
     <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">—</span></div>
     <div class="ai-badge" id="ai-badge">—</div>
   </div>
@@ -302,7 +355,7 @@ select.field{cursor:pointer}
   <!-- Rail -->
   <div class="rail">
     <div class="rail-top">
-      <button class="new-proj-btn" onclick="openNewProject()" title="New Project (⌘N)">
+      <button class="new-proj-btn" onclick="openNewProject()" title="New Project">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New project
       </button>
     </div>
@@ -326,15 +379,26 @@ select.field{cursor:pointer}
       <div class="sb-label">Sources</div>
       <div class="sb-proj-name" id="sb-proj-name">—</div>
     </div>
+    <div class="src-search-wrap">
+      <svg class="src-search-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="src-search" id="src-search" type="text" placeholder="Search sources…" oninput="filterSources(this.value)">
+    </div>
+    <div class="src-filter-row" id="tag-filter-row" style="display:none"></div>
+    <div class="src-bulk-bar" id="bulk-bar">
+      <span id="bulk-count">0 selected</span>
+      <button class="src-bulk-btn" onclick="bulkToggle(true)">Enable all</button>
+      <button class="src-bulk-btn" onclick="bulkToggle(false)">Disable all</button>
+      <button class="src-bulk-btn danger" onclick="bulkDelete()">Delete</button>
+      <button class="src-bulk-btn" onclick="clearBulk()" style="margin-left:auto">✕</button>
+    </div>
     <div class="sources-scroll" id="sources-list"></div>
-    <button class="add-src-btn" onclick="openAddSource()" title="Add Source (⌘⇧A)">
+    <button class="add-src-btn" onclick="openAddSource()">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add source
     </button>
   </div>
 
-  <!-- Main area -->
+  <!-- Main -->
   <div class="main">
-    <!-- Tab bar -->
     <div class="main-tabs">
       <button class="main-tab active" id="mt-chat" onclick="switchMainTab('chat')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat
@@ -347,13 +411,17 @@ select.field{cursor:pointer}
     <!-- Chat panel -->
     <div class="tab-panel active" id="tp-chat">
       <div class="chat-header">
-        <div style="flex:1">
+        <div id="thread-selector-wrap" style="display:none;flex:1;min-width:0;overflow:hidden">
+          <div class="thread-selector" id="thread-selector"></div>
+        </div>
+        <div id="chat-title-wrap" style="flex:1">
           <div class="chat-title" id="chat-title">Select a project</div>
           <div class="chat-sub" id="chat-sub">Choose or create a project to get started</div>
         </div>
-        <button class="hdr-btn" onclick="exportChatMd()" id="export-btn" style="display:none">
+        <button class="hdr-btn" onclick="exportChatMenu()" id="export-btn" style="display:none">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export
         </button>
+        <button class="hdr-btn" onclick="sendToPodcast()" id="podcast-btn" style="display:none" title="Send to Podcast tab">🎙️</button>
         <button class="hdr-btn" onclick="clearChat()">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.08"/></svg>Clear
         </button>
@@ -362,7 +430,7 @@ select.field{cursor:pointer}
         <div class="proj-home">
           <div class="proj-home-emoji">📚</div>
           <h2>Welcome to RAG Research Workbook</h2>
-          <p>Create a project to organise your sources and research conversations.</p>
+          <p>Create a project to organize your sources and research conversations.</p>
           <button class="btn btn-solid" onclick="openNewProject()">Create first project</button>
         </div>
       </div>
@@ -405,39 +473,33 @@ select.field{cursor:pointer}
           </div>
           <div class="pod-field">
             <div class="pod-label">Tone / style</div>
-            <input class="pod-input" type="text" id="pod-tone" placeholder="e.g. conversational and engaging, academic and rigorous, casual and fun…" value="conversational and engaging">
+            <input class="pod-input" type="text" id="pod-tone" placeholder="e.g. conversational and engaging, academic and rigorous…" value="conversational and engaging">
           </div>
           <div class="podcast-actions">
             <button class="pod-gen-btn" id="pod-gen-btn" onclick="generateScript()">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Generate script
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Generate script
             </button>
             <div class="pod-status" id="pod-status"></div>
           </div>
         </div>
-
-        <!-- Voice config (shown when ElevenLabs key set) -->
         <div class="voice-config" id="voice-config" style="display:none">
           <div class="pod-field">
-            <div class="voice-label"><span class="voice-dot h1" style="display:inline-block;margin-right:4px"></span>Host 1 voice</div>
+            <div class="voice-label">Host 1 voice</div>
             <select class="pod-select" id="voice-h1"></select>
           </div>
           <div class="pod-field" id="voice-h2-field">
-            <div class="voice-label"><span class="voice-dot h2" style="display:inline-block;margin-right:4px"></span>Host 2 voice</div>
+            <div class="voice-label">Host 2 voice</div>
             <select class="pod-select" id="voice-h2"></select>
           </div>
         </div>
-
         <div class="podcast-body">
           <div class="script-area" id="script-area">
             <div class="script-empty" id="script-empty">
               <div class="se-icon">🎙️</div>
-              <p>Configure your podcast above, then click <strong>Generate script</strong> to create a podcast from your active sources.</p>
+              <p>Configure your podcast above and click <strong>Generate script</strong> to create a podcast from your active sources.</p>
             </div>
           </div>
         </div>
-
-        <!-- Audio player (shown after audio generated) -->
         <div class="podcast-player" id="podcast-player" style="display:none">
           <div style="font-size:11px;color:var(--text3);margin-bottom:4px" id="audio-source-label">—</div>
           <div class="player-controls">
@@ -489,7 +551,7 @@ select.field{cursor:pointer}
         <label class="lbl">Anthropic API key</label>
         <input class="field" type="password" id="s-api-key" placeholder="sk-ant-…">
         <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:10px">
-          Get your key at <a href="#" onclick="openExt('https://console.anthropic.com/settings/keys');return false" style="color:var(--accent)">console.anthropic.com</a> · Required for AI-assisted URL fetch and chat
+          Get your key at <a href="#" onclick="openExt('https://console.anthropic.com/settings/keys');return false" style="color:var(--accent)">console.anthropic.com</a>
         </div>
       </div>
       <div id="ollama-fields" style="display:none">
@@ -505,10 +567,10 @@ select.field{cursor:pointer}
     </div>
     <div class="modal-section">
       <div class="section-title">Podcast — ElevenLabs voices</div>
-      <label class="lbl">ElevenLabs API key <span style="color:var(--text3)">(optional — enables high-quality AI voices)</span></label>
+      <label class="lbl">ElevenLabs API key <span style="color:var(--text3)">(optional)</span></label>
       <input class="field" type="password" id="s-el-key" placeholder="Your ElevenLabs API key…">
       <div style="font-size:11px;color:var(--text3);margin-top:-6px;margin-bottom:0">
-        Get a free key at <a href="#" onclick="openExt('https://elevenlabs.io');return false" style="color:var(--accent)">elevenlabs.io</a> · Without this, built-in system TTS is used as a fallback (single voice, lower quality)
+        Get a free key at <a href="#" onclick="openExt('https://elevenlabs.io');return false" style="color:var(--accent)">elevenlabs.io</a> · Without this, built-in system TTS is used as a fallback
       </div>
     </div>
     <div class="modal-section">
@@ -522,7 +584,7 @@ select.field{cursor:pointer}
         <option value="onedrive">OneDrive</option>
         <option value="custom">Custom path…</option>
       </select>
-      <div class="path-display" id="s-path-display">—</div>
+      <div class="path-display" id="s-path-display" style="font-family:var(--mono);font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 8px;margin-top:-6px;margin-bottom:10px;word-break:break-all;line-height:1.5">—</div>
       <div id="custom-path-row" style="display:none">
         <label class="lbl">Custom sync path</label>
         <div style="display:flex;gap:6px;margin-bottom:10px">
@@ -555,6 +617,12 @@ select.field{cursor:pointer}
         <option value="light">Light</option>
         <option value="dark">Dark</option>
       </select>
+      <label class="lbl">Text size</label>
+      <div class="font-size-btns">
+        <button class="font-size-btn" id="fsz-sm" onclick="setFontSize('sm')" style="font-size:11px">Small</button>
+        <button class="font-size-btn active" id="fsz-md" onclick="setFontSize('md')" style="font-size:13px">Medium</button>
+        <button class="font-size-btn" id="fsz-lg" onclick="setFontSize('lg')" style="font-size:15px">Large</button>
+      </div>
     </div>
     <div class="modal-section">
       <div class="section-title">Data</div>
@@ -570,6 +638,7 @@ select.field{cursor:pointer}
         <div>Sync now<span class="kbd">⌘S</span></div><div>Settings<span class="kbd">⌘,</span></div>
         <div>Export chat<span class="kbd">⌘⇧E</span></div><div>Toggle dark<span class="kbd">⌘⇧D</span></div>
         <div>Send message<span class="kbd">↵</span></div><div>New line<span class="kbd">⇧↵</span></div>
+        <div>Send to podcast<span class="kbd">⌘⇧P</span></div>
       </div>
     </div>
     <div class="modal-foot">
@@ -626,14 +695,24 @@ select.field{cursor:pointer}
     <div class="tabs">
       <button class="tab on" id="t-text" onclick="switchTab('text',this)">Paste text</button>
       <button class="tab" id="t-url" onclick="switchTab('url',this)">From URL</button>
+      <button class="tab" id="t-yt" onclick="switchTab('yt',this)">YouTube</button>
       <button class="tab" id="t-file" onclick="switchTab('file',this)">Upload file</button>
     </div>
+
+    <!-- Paste text -->
     <div id="pane-text">
       <label class="lbl">Source name</label>
       <input class="field" type="text" id="src-name" placeholder="Article title, paper name…">
+      <label class="lbl">Tags <span style="color:var(--text3)">(optional — press Enter to add)</span></label>
+      <div class="tag-input-row">
+        <input class="field" type="text" id="src-tag-input" placeholder="e.g. primary, background, interview…" onkeydown="addTagFromInput(event)">
+      </div>
+      <div class="tags-display" id="src-tags-display"></div>
       <label class="lbl">Content</label>
-      <textarea class="field" id="src-text" rows="6" placeholder="Paste your text here…"></textarea>
+      <textarea class="field" id="src-text" rows="5" placeholder="Paste your text here…"></textarea>
     </div>
+
+    <!-- From URL -->
     <div id="pane-url" style="display:none">
       <label class="lbl">URL</label>
       <div class="url-row">
@@ -643,21 +722,52 @@ select.field{cursor:pointer}
       <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
         <span style="font-size:11px;color:var(--text3)">Method:</span>
         <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer">
-          <input type="radio" name="fetch-method" id="fm-native" value="native" checked> 🆓 Native (free, no API key)
+          <input type="radio" name="fetch-method" id="fm-native" value="native" checked> 🆓 Native (free)
         </label>
         <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);cursor:pointer">
-          <input type="radio" name="fetch-method" id="fm-ai" value="ai"> ☁️ AI-assisted (Anthropic key required)
+          <input type="radio" name="fetch-method" id="fm-ai" value="ai"> ☁️ AI-assisted
         </label>
       </div>
-      <div style="font-size:10px;color:var(--text3);margin-top:-6px;margin-bottom:10px">Native works for most articles and docs. Use AI-assisted for JavaScript-heavy pages.</div>
       <div id="fetch-status" style="display:none"></div>
       <div id="url-preview" style="display:none">
         <label class="lbl">Source name</label>
         <input class="field" type="text" id="url-name" placeholder="Source name">
+        <label class="lbl">Tags <span style="color:var(--text3)">(optional)</span></label>
+        <div class="tag-input-row">
+          <input class="field" type="text" id="url-tag-input" placeholder="e.g. primary, web…" onkeydown="addTagFromInput(event,'url')">
+        </div>
+        <div class="tags-display" id="url-tags-display"></div>
         <label class="lbl" style="display:flex;justify-content:space-between"><span>Preview</span><span id="char-ct" style="color:var(--text3)"></span></label>
         <textarea class="field" id="url-body" rows="4" style="font-size:11px;font-family:var(--mono);color:var(--text2)"></textarea>
       </div>
     </div>
+
+    <!-- YouTube -->
+    <div id="pane-yt" style="display:none">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;padding:8px 10px;background:var(--teal-bg);border-radius:var(--r);border:1px solid var(--teal-border)">
+        🎬 <strong style="color:var(--teal)">YouTube transcript importer</strong><br>
+        Fetches the full captions/transcript from any YouTube video that has captions enabled (auto-generated or manual). Free — no API key required.
+      </div>
+      <label class="lbl">YouTube URL</label>
+      <div class="url-row">
+        <input class="field" type="url" id="yt-url-in" placeholder="https://youtube.com/watch?v=…" onkeydown="if(event.key==='Enter')doYTFetch()">
+        <button class="btn btn-solid" id="yt-fetch-btn" onclick="doYTFetch()" style="white-space:nowrap;padding:6px 10px">Fetch</button>
+      </div>
+      <div id="yt-fetch-status" style="display:none"></div>
+      <div id="yt-preview" style="display:none">
+        <label class="lbl">Source name</label>
+        <input class="field" type="text" id="yt-name" placeholder="Video title">
+        <label class="lbl">Tags <span style="color:var(--text3)">(optional)</span></label>
+        <div class="tag-input-row">
+          <input class="field" type="text" id="yt-tag-input" placeholder="e.g. video, interview…" onkeydown="addTagFromInput(event,'yt')">
+        </div>
+        <div class="tags-display" id="yt-tags-display"></div>
+        <label class="lbl" style="display:flex;justify-content:space-between"><span>Transcript preview</span><span id="yt-char-ct" style="color:var(--text3)"></span></label>
+        <textarea class="field" id="yt-body" rows="4" style="font-size:11px;font-family:var(--mono);color:var(--text2)"></textarea>
+      </div>
+    </div>
+
+    <!-- Upload file -->
     <div id="pane-file" style="display:none">
       <div class="drop-zone" id="drop-zone" onclick="triggerFile()" ondragover="dov(event)" ondragleave="dol()" ondrop="dop(event)">
         <div class="di">📎</div><div>Drop a file or click to browse</div>
@@ -665,10 +775,18 @@ select.field{cursor:pointer}
       </div>
       <input type="file" id="file-in" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.pptx,.ppt,.html,.htm,.txt,.md" style="display:none" onchange="onFile(event)">
       <div id="file-status" style="display:none;font-size:11px;padding:2px 0"></div>
+      <div id="file-tag-row" style="display:none">
+        <label class="lbl">Tags <span style="color:var(--text3)">(optional)</span></label>
+        <div class="tag-input-row">
+          <input class="field" type="text" id="file-tag-input" placeholder="e.g. pdf, report…" onkeydown="addTagFromInput(event,'file')">
+        </div>
+        <div class="tags-display" id="file-tags-display"></div>
+      </div>
       <div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.5;padding:7px 9px;background:var(--surface2);border-radius:var(--r);border:1px solid var(--border)">
-        ⚠️ <strong style="font-weight:500">Audio and video files are not supported.</strong> To use audio/video content, transcribe it externally and paste the transcript as a text source.
+        ⚠️ <strong style="font-weight:500">Audio and video files are not supported.</strong> To use audio/video content, transcribe it externally and paste the transcript as a text source, or use the YouTube tab for videos with captions.
       </div>
     </div>
+
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeSrcModal()">Cancel</button>
       <button class="btn btn-solid" onclick="addSrc()">Add source</button>
@@ -676,11 +794,38 @@ select.field{cursor:pointer}
   </div>
 </div>
 
+<!-- Export chat format picker -->
+<div class="overlay" id="export-overlay" onclick="if(event.target===this)closeExportMenu()">
+  <div class="modal" style="width:300px">
+    <h3>Export chat</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-ghost" onclick="exportChatMd()" style="justify-content:flex-start;padding:10px 14px;font-size:13px">📄 Markdown (.md)</button>
+      <button class="btn btn-ghost" onclick="doExportDocx()" style="justify-content:flex-start;padding:10px 14px;font-size:13px">📝 Word document (.docx)</button>
+      <button class="btn btn-ghost" onclick="doExportPdf()" style="justify-content:flex-start;padding:10px 14px;font-size:13px">📕 PDF (.pdf)</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeExportMenu()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit message modal -->
+<div class="overlay" id="edit-overlay" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal" style="width:480px">
+    <h3>Edit message</h3>
+    <textarea class="field" id="edit-input" rows="4" style="font-size:13px"></textarea>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-solid" onclick="resendEdited()">Resend</button>
+    </div>
+  </div>
+</div>
+
 <!-- Confirm modal -->
 <div class="overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
-  <div class="modal confirm-modal">
+  <div class="modal" style="width:340px">
     <h3 id="confirm-title">Confirm</h3>
-    <div class="confirm-msg" id="confirm-msg"></div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px" id="confirm-msg"></div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
       <button class="btn btn-danger" id="confirm-action-btn" onclick="confirmAction()">Delete</button>
@@ -688,8 +833,31 @@ select.field{cursor:pointer}
   </div>
 </div>
 
+<!-- Onboarding overlay -->
+<div id="onboarding-overlay" class="onboarding-overlay" style="display:none">
+  <div class="onboarding-card">
+    <div class="onboarding-icon" id="ob-icon">📚</div>
+    <h2 id="ob-title">Welcome to RAG Research Workbook</h2>
+    <p id="ob-body">Your AI research assistant that answers strictly from your own sources — no hallucinations, no guessing.</p>
+    <div class="onboarding-steps" id="ob-steps"></div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-ghost" id="ob-skip" onclick="skipOnboarding()">Skip</button>
+      <button class="btn btn-solid" id="ob-next" onclick="nextOnboarding()">Get started →</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const EMOJIS=['📚','🔬','💡','📝','🌐','🧪','📊','🗂️','🏛️','🔭','🧬','⚗️','📰','🎯','🔍','💼','🌿','🏗️','🎓','🧠','✍️','🗺️','💻','📡'];
+const OB_STEPS=[
+  {icon:'📚',title:'Welcome to RAG Research Workbook',body:'Your AI research assistant that answers strictly from your own sources — no hallucinations, no guessing.'},
+  {icon:'🗂️',title:'Create projects',body:'Organize your research into projects. Each project has its own sources, chat threads, and history.'},
+  {icon:'📎',title:'Add sources',body:'Add text, URLs, YouTube videos (with captions), PDFs, Word docs, spreadsheets, and more. Tag them to stay organized.'},
+  {icon:'💬',title:'Chat with your sources',body:'Ask questions and get answers grounded strictly in your sources. Every response cites which source it came from.'},
+  {icon:'🎙️',title:'Generate podcasts',body:'Turn your research into a listenable podcast with AI-written scripts and ElevenLabs or system TTS audio.'},
+  {icon:'✅',title:"You're ready!",body:'Create your first project to get started. You can revisit this guide anytime from the Help menu.'},
+];
+
 const $=id=>document.getElementById(id);
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function uid(){return 'id'+Date.now()+Math.random().toString(36).slice(2,7)}
@@ -697,78 +865,77 @@ function openExt(url){window.electron.openExternal(url)}
 
 // ── State ────────────────────────────────────────────────
 let projects=[], activeId=null, busy=false, curTab='text';
-let pendingFile=null, fetchedContent=null, fetchedUrl=null;
+let pendingFile=null, fetchedContent=null, fetchedUrl=null, fetchedYT=null;
 let selEmoji='📚', editProjId=null, confirmCb=null, openDd=null;
 let settings={}, cloudPaths={};
 let ollamaCheckTimer=null;
-// Podcast state
-let podTTSFilePath=null; // track macOS TTS temp file path for export
-let podScript=[], podAudioBlob=null, podAudioUrl=null, audioEl=null;
+let podScript=[], podAudioBlob=null, podAudioUrl=null, audioEl=null, podTTSFilePath=null;
 let elVoices=[];
-
-let platform = 'darwin'; // updated on init
-const isMac = () => platform === 'darwin';
-const isWin = () => platform === 'win32';
-const modKey = () => isMac() ? '⌘' : 'Ctrl+';
+let activeThreadId=null;
+let searchQuery='', activeTagFilter=null;
+let bulkSelected=new Set();
+let currentSrcTags={text:[],url:[],yt:[],file:[]};
+let editMsgIndex=-1;
+let obStep=0;
 
 function getProj(){return projects.find(p=>p.id===activeId)}
+function getThread(){const p=getProj();if(!p)return null;if(p.threads){return p.threads.find(t=>t.id===activeThreadId)||p.threads[0]||null;}return null;}
+function getHistory(){
+  const p=getProj();if(!p)return[];
+  if(p.threads){const t=getThread();return t?t.history:[];}
+  return p.history||[];
+}
 
 // ── Persistence ──────────────────────────────────────────
 async function saveAll(){
   const result=await window.electron.saveData({projects,activeId},settings.syncPath);
   setSyncStatus(result.ok?'ok':'err',result.ok?'Saved':'Save failed');
+  if(result.ok) showSaveConfirm();
   return result.ok;
 }
 async function loadAll(){return window.electron.loadData(settings.syncPath)}
-function setSyncStatus(s,l){$('sync-dot').className='sync-dot '+s;$('sync-label').textContent=l}
+function setSyncStatus(s,l){$('sync-dot').className='sync-dot '+s;$('sync-label').textContent=l;}
+function showSaveConfirm(){
+  const el=$('save-confirm');el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),1500);
+}
 
 function updateAIBadge(){
-  const b=$('ai-badge'), p=settings.aiProvider||'anthropic';
+  const b=$('ai-badge'),p=settings.aiProvider||'anthropic';
   b.className='ai-badge '+p;
   b.textContent=p==='ollama'?`🦙 ${settings.ollamaModel||'llama3'}`:'☁️ Claude';
 }
 
+// ── Font size ─────────────────────────────────────────────
+function setFontSize(sz){
+  document.body.classList.remove('font-sm','font-lg');
+  if(sz==='sm') document.body.classList.add('font-sm');
+  if(sz==='lg') document.body.classList.add('font-lg');
+  ['sm','md','lg'].forEach(s=>$('fsz-'+s).classList.toggle('active',s===sz));
+  settings.fontSize=sz;
+}
+
 // ── Init ─────────────────────────────────────────────────
 async function init(){
-  platform = await window.electron.getPlatform();
-
-  // Hide macOS title bar drag region on Windows (it shows standard frame instead)
-  if (isWin()) {
-    const tb = document.querySelector('.titlebar');
-    if (tb) { tb.style.paddingLeft = '12px'; tb.style.webkitAppRegion = 'no-drag'; }
-    document.documentElement.style.setProperty('--titlebar', '0px');
-  }
-
-  // Update keyboard shortcut labels for Windows
-  if (isWin()) {
-    document.querySelectorAll('.kbd').forEach(el => {
-      el.textContent = el.textContent
-        .replace('⌘N', 'Ctrl+N').replace('⌘⇧A', 'Ctrl+Shift+A')
-        .replace('⌘S', 'Ctrl+S').replace('⌘,', 'Ctrl+,')
-        .replace('⌘⇧E', 'Ctrl+Shift+E').replace('⌘⇧D', 'Ctrl+Shift+D');
-    });
-    // Update tooltips
-    document.querySelectorAll('[title]').forEach(el => {
-      el.title = el.title.replace('⌘N', 'Ctrl+N').replace('⌘⇧A', 'Ctrl+Shift+A');
-    });
-  }
-
-  // Hide iCloud option on Windows (not available)
-  if (isWin()) {
-    const icloudOpt = document.querySelector('#s-cloud option[value="icloud"]');
-    if (icloudOpt) icloudOpt.remove();
-  }
   settings=await window.electron.loadSettings();
   cloudPaths=await window.electron.detectCloudPaths();
   applyTheme(settings.darkMode||'system');
+  setFontSize(settings.fontSize||'md');
   updateAIBadge();
   const data=await loadAll();
-  projects=data.projects||[]; activeId=data.activeId||null;
-  buildEmojiGrid(); renderProjects();
+  projects=data.projects||[];activeId=data.activeId||null;
+  // Migrate old projects: add threads array if missing
+  projects.forEach(p=>{
+    if(!p.threads){
+      p.threads=null; // null = legacy single-thread mode
+    }
+  });
+  buildEmojiGrid();renderProjects();
   if(activeId&&getProj()) activateProject(activeId,false); else showHome();
   setSyncStatus('ok','Ready');
-  // Load ElevenLabs voices if key set
   if(settings.elevenlabsKey) loadELVoices();
+  // Show onboarding on first run
+  if(!settings.onboardingDone) showOnboarding();
   window.electron.on('open-settings',()=>openSettings());
   window.electron.on('open-updater',()=>openUpdater());
   window.electron.on('new-project',()=>openNewProject());
@@ -778,12 +945,44 @@ async function init(){
   window.electron.on('import-json',()=>importJSON());
   window.electron.on('sync-now',()=>triggerSync());
   window.electron.on('toggle-dark-mode',()=>toggleDarkMode());
-  window.electron.on('dark-mode-changed',()=>{if(settings.darkMode==='system') applyTheme('system');});
+  window.electron.on('dark-mode-changed',()=>{if(settings.darkMode==='system')applyTheme('system');});
   window.electron.on('update-log',msg=>appendUpdateLog(msg));
+  document.addEventListener('keydown',globalKeys);
   document.addEventListener('click',e=>{if(openDd&&!e.target.closest('.proj-dropdown')&&!e.target.closest('.proj-menu-btn'))closeAllDd()});
 }
 
-// ── Theme ────────────────────────────────────────────────
+function globalKeys(e){
+  const mod=e.metaKey||e.ctrlKey;
+  if(mod&&e.shiftKey&&e.key==='p'){e.preventDefault();sendToPodcast();}
+}
+
+// ── Onboarding ────────────────────────────────────────────
+function showOnboarding(){
+  obStep=0;renderOnboardingStep();
+  $('onboarding-overlay').style.display='flex';
+}
+function renderOnboardingStep(){
+  const s=OB_STEPS[obStep];
+  $('ob-icon').textContent=s.icon;
+  $('ob-title').textContent=s.title;
+  $('ob-body').textContent=s.body;
+  $('ob-next').textContent=obStep===OB_STEPS.length-1?'Get started!':'Next →';
+  $('ob-skip').style.display=obStep===OB_STEPS.length-1?'none':'inline-flex';
+  const steps=$('ob-steps');steps.innerHTML='';
+  OB_STEPS.forEach((_,i)=>{const d=document.createElement('div');d.className='onboarding-step'+(i===obStep?' active':i<obStep?' done':'');steps.appendChild(d);});
+}
+function nextOnboarding(){
+  obStep++;
+  if(obStep>=OB_STEPS.length){skipOnboarding();return;}
+  renderOnboardingStep();
+}
+async function skipOnboarding(){
+  $('onboarding-overlay').style.display='none';
+  settings.onboardingDone=true;
+  await window.electron.saveSettings(settings);
+}
+
+// ── Theme ─────────────────────────────────────────────────
 function applyTheme(m){
   if(m==='dark') document.body.classList.add('dark');
   else if(m==='light') document.body.classList.remove('dark');
@@ -795,7 +994,7 @@ async function toggleDarkMode(){
   await window.electron.saveSettings(settings);
 }
 
-// ── Main tab switch ──────────────────────────────────────
+// ── Main tab switch ───────────────────────────────────────
 function switchMainTab(tab){
   ['chat','podcast'].forEach(t=>{
     $(`mt-${t}`).classList.toggle('active',t===tab);
@@ -810,7 +1009,7 @@ async function triggerSync(){
   setSyncStatus(ok?'ok':'err',ok?'Synced':'Sync failed');
 }
 
-// ── Settings ─────────────────────────────────────────────
+// ── Settings ──────────────────────────────────────────────
 async function openSettings(){
   settings=await window.electron.loadSettings();
   cloudPaths=await window.electron.detectCloudPaths();
@@ -824,13 +1023,18 @@ async function openSettings(){
   $('s-gh-owner').value=settings.githubOwner||'';
   $('s-gh-repo').value=settings.githubRepo||'';
   $('s-repo-path').value=settings.repoPath||'';
+  setFontSize(settings.fontSize||'md');
   selectProvider(settings.aiProvider||'anthropic',false);
   updatePathDisplay();
   $('settings-overlay').classList.add('open');
   if((settings.aiProvider||'anthropic')==='ollama') checkOllamaStatus();
+  // Hide iCloud on Windows
+  window.electron.getPlatform().then(platform=>{
+    const icloudOpt=document.querySelector('#s-cloud option[value="icloud"]');
+    if(icloudOpt) icloudOpt.style.display=platform==='win32'?'none':'';
+  });
 }
 function closeSettings(){$('settings-overlay').classList.remove('open')}
-
 function selectProvider(p,checkOllama=true){
   $('pb-anthropic').classList.toggle('active',p==='anthropic');
   $('pb-ollama').classList.toggle('active',p==='ollama');
@@ -838,25 +1042,22 @@ function selectProvider(p,checkOllama=true){
   $('ollama-fields').style.display=p==='ollama'?'block':'none';
   if(p==='ollama'&&checkOllama) checkOllamaStatus();
 }
-
 async function checkOllamaStatus(){
   const host=$('s-ollama-host').value.trim()||'http://localhost:11434';
   const el=$('ollama-status');
-  el.className='ollama-status checking'; el.textContent='Checking Ollama…';
+  el.className='ollama-status checking';el.textContent='Checking Ollama…';
   const result=await window.electron.listOllamaModels(host);
   if(result.ok&&result.models.length){
     el.className='ollama-status ok';
     el.textContent=`✓ Ollama running · ${result.models.length} model${result.models.length!==1?'s':''} available`;
-    const sel=$('s-ollama-model'); sel.innerHTML='';
+    const sel=$('s-ollama-model');sel.innerHTML='';
     result.models.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
     sel.value=settings.ollamaModel||result.models[0]||'llama3';
   } else {
-    el.className='ollama-status err';
-    el.textContent='Ollama not running — start it with: ollama serve';
+    el.className='ollama-status err';el.textContent='Ollama not running — start it with: ollama serve';
     $('s-ollama-model').innerHTML='<option value="llama3">llama3 (default)</option>';
   }
 }
-
 function debouncedCheckOllama(){clearTimeout(ollamaCheckTimer);ollamaCheckTimer=setTimeout(checkOllamaStatus,800);}
 function onCloudChange(){updatePathDisplay();}
 function updatePathDisplay(){
@@ -876,21 +1077,25 @@ async function saveSettingsFromModal(){
   const svc=$('s-cloud').value;
   const provider=$('pb-ollama').classList.contains('active')?'ollama':'anthropic';
   const syncPath=svc==='custom'?$('s-custom-path').value.trim():svc==='local'?cloudPaths.local:(cloudPaths[svc]||cloudPaths.local);
+  const fs=document.querySelector('.font-size-btn.active')?.id.replace('fsz-','');
   settings={
     apiKey:$('s-api-key').value.trim(),
     elevenlabsKey:$('s-el-key').value.trim(),
     aiProvider:provider,
     ollamaModel:$('s-ollama-model').value||'llama3',
     ollamaHost:$('s-ollama-host').value.trim()||'http://localhost:11434',
-    cloudService:svc, syncPath, customPath:$('s-custom-path').value.trim(),
+    cloudService:svc,syncPath,customPath:$('s-custom-path').value.trim(),
     autoSync:$('s-autosync').checked,
     darkMode:$('s-darkmode').value,
     githubOwner:$('s-gh-owner').value.trim(),
     githubRepo:$('s-gh-repo').value.trim(),
     repoPath:$('s-repo-path').value.trim(),
-    useAutoUpdater:false
+    useAutoUpdater:false,
+    fontSize:fs||'md',
+    onboardingDone:true
   };
   applyTheme(settings.darkMode);
+  setFontSize(settings.fontSize);
   updateAIBadge();
   await window.electron.saveSettings(settings);
   closeSettings();
@@ -898,7 +1103,7 @@ async function saveSettingsFromModal(){
   await triggerSync();
 }
 
-// ── Updater ──────────────────────────────────────────────
+// ── Updater ───────────────────────────────────────────────
 async function openUpdater(){
   $('updater-overlay').classList.add('open');
   $('update-run-section').style.display='none';
@@ -912,15 +1117,14 @@ async function openUpdater(){
 }
 function closeUpdater(){$('updater-overlay').classList.remove('open')}
 async function checkForUpdate(){
-  const owner=settings.githubOwner, repo=settings.githubRepo;
+  const owner=settings.githubOwner,repo=settings.githubRepo;
   if(!owner||!repo){showUpdateStatus('err','Set your GitHub username and repo in Settings → Updates first.');return;}
   $('btn-check-update').disabled=true;
   showUpdateStatus('loading','Checking GitHub for updates…');
   const r=await window.electron.checkForUpdate({owner,repo});
   $('btn-check-update').disabled=false;
   if(!r.ok){showUpdateStatus('err','Could not check for updates: '+r.error);return;}
-  $('update-status-box').style.display='none';
-  $('update-info').style.display='block';
+  $('update-status-box').style.display='none';$('update-info').style.display='block';
   if(r.hasUpdate){
     $('update-headline').textContent=`🎉 Update available: v${r.latest}`;
     $('update-details').textContent=`You have v${r.current}. Click "Install update" to build and install.`;
@@ -930,27 +1134,20 @@ async function checkForUpdate(){
     $('update-details').textContent='No newer version found on GitHub.';
   }
 }
-function showUpdateStatus(type,msg){
-  const el=$('update-status-box');el.style.display='flex';el.className=`status-box ${type}`;
-  el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);
-}
+function showUpdateStatus(type,msg){const el=$('update-status-box');el.style.display='flex';el.className=`status-box ${type}`;el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);}
 async function runUpdate(){
   const repoPath=settings.repoPath;
   if(!repoPath){showUpdateStatus('err','Set your local repo path in Settings → Updates first.');return;}
-  $('btn-run-update').disabled=true;
-  $('btn-check-update').style.display='none';
-  $('update-info').style.display='none';
-  $('update-run-section').style.display='block';
-  $('update-repo-path-display').textContent=repoPath;
-  $('update-log').textContent='';
-  $('update-done-msg').style.display='none';
+  $('btn-run-update').disabled=true;$('btn-check-update').style.display='none';
+  $('update-info').style.display='none';$('update-run-section').style.display='block';
+  $('update-repo-path-display').textContent=repoPath;$('update-log').textContent='';$('update-done-msg').style.display='none';
   const r=await window.electron.runUpdateB({repoPath});
   $('btn-run-update').disabled=false;
   if(r.ok) $('update-done-msg').style.display='block';
 }
 function appendUpdateLog(msg){const el=$('update-log');el.textContent+=msg;el.scrollTop=el.scrollHeight;}
 
-// ── Projects ─────────────────────────────────────────────
+// ── Projects ──────────────────────────────────────────────
 function renderProjects(){
   const el=$('projects-list');
   if(!projects.length){el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No projects yet.</div>`;return;}
@@ -969,13 +1166,19 @@ function renderProjects(){
 }
 
 function activateProject(id,persist=true){
-  activeId=id; closeAllDd();
-  const p=getProj(); if(!p) return;
+  activeId=id;closeAllDd();
+  const p=getProj();if(!p)return;
+  // Initialize threads for new projects
+  if(p.threads===undefined) p.threads=null;
+  // Set active thread
+  if(p.threads&&p.threads.length) activeThreadId=p.threads[0].id;
+  else activeThreadId=null;
   $('sb-proj-name').textContent=p.name;
   $('chat-title').textContent=p.name;
   $('input-wrap').style.display='block';
   $('export-btn').style.display='flex';
-  renderSources(); renderHistory(); updateStatus();
+  $('podcast-btn').style.display='flex';
+  renderSources();renderHistory();renderThreads();updateStatus();
   if(persist&&settings.autoSync!==false) saveAll();
   renderProjects();
 }
@@ -987,51 +1190,55 @@ function showHome(){
   $('chat-sub').textContent='Choose or create a project to get started';
   $('input-wrap').style.display='none';
   $('export-btn').style.display='none';
+  $('podcast-btn').style.display='none';
+  $('thread-selector-wrap').style.display='none';
+  $('chat-title-wrap').style.display='block';
   $('sources-list').innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No project selected.</div>`;
-  $('messages').innerHTML=`<div class="proj-home"><div class="proj-home-emoji">📚</div><h2>Welcome to RAG Research Workbook</h2><p>Create a project to organise your sources and research conversations.</p><button class="btn btn-solid" onclick="openNewProject()">Create first project</button></div>`;
+  $('messages').innerHTML=`<div class="proj-home"><div class="proj-home-emoji">📚</div><h2>Welcome to RAG Research Workbook</h2><p>Create a project to organize your sources and research conversations.</p><button class="btn btn-solid" onclick="openNewProject()">Create first project</button></div>`;
 }
 
 function openNewProject(){
-  editProjId=null; selEmoji='📚';
+  editProjId=null;selEmoji='📚';
   $('proj-modal-title').textContent='New project';
-  $('proj-name-input').value=''; $('proj-desc-input').value='';
-  updateEmojiGrid(); $('proj-overlay').classList.add('open');
+  $('proj-name-input').value='';$('proj-desc-input').value='';
+  updateEmojiGrid();$('proj-overlay').classList.add('open');
   setTimeout(()=>$('proj-name-input').focus(),120);
 }
 function editProject(id){
-  closeAllDd();
-  const p=projects.find(x=>x.id===id); if(!p) return;
-  editProjId=id; selEmoji=p.emoji||'📚';
+  closeAllDd();const p=projects.find(x=>x.id===id);if(!p)return;
+  editProjId=id;selEmoji=p.emoji||'📚';
   $('proj-modal-title').textContent='Edit project';
-  $('proj-name-input').value=p.name; $('proj-desc-input').value=p.desc||'';
-  updateEmojiGrid(); $('proj-overlay').classList.add('open');
+  $('proj-name-input').value=p.name;$('proj-desc-input').value=p.desc||'';
+  updateEmojiGrid();$('proj-overlay').classList.add('open');
   setTimeout(()=>$('proj-name-input').focus(),120);
 }
 async function saveProject(){
-  const name=$('proj-name-input').value.trim(); if(!name){alert('Please enter a project name.');return;}
+  const name=$('proj-name-input').value.trim();if(!name){alert('Please enter a project name.');return;}
   const desc=$('proj-desc-input').value.trim();
   if(editProjId){
     const p=projects.find(x=>x.id===editProjId);
     if(p){p.name=name;p.emoji=selEmoji;p.desc=desc;}
     if(activeId===editProjId){$('sb-proj-name').textContent=name;$('chat-title').textContent=name;}
   } else {
-    const p={id:uid(),name,emoji:selEmoji,desc,sources:[],history:[]};
-    projects.push(p); activateProject(p.id,false);
+    // New projects get threads array
+    const threadId=uid();
+    const p={id:uid(),name,emoji:selEmoji,desc,sources:[],threads:[{id:threadId,name:'Thread 1',history:[]}]};
+    projects.push(p);activateProject(p.id,false);
   }
   if(settings.autoSync!==false) await saveAll();
-  renderProjects(); closeProjModal();
+  renderProjects();closeProjModal();
 }
 async function dupProject(id){
-  closeAllDd();
-  const p=projects.find(x=>x.id===id); if(!p) return;
-  const c=JSON.parse(JSON.stringify(p)); c.id=uid(); c.name=p.name+' (copy)'; c.history=[];
+  closeAllDd();const p=projects.find(x=>x.id===id);if(!p)return;
+  const c=JSON.parse(JSON.stringify(p));c.id=uid();c.name=p.name+' (copy)';
+  if(c.threads) c.threads=c.threads.map(t=>({...t,id:uid(),history:[]}));
+  else c.history=[];
   projects.push(c);
   if(settings.autoSync!==false) await saveAll();
   renderProjects();
 }
 function delProjectConfirm(id){
-  closeAllDd();
-  const p=projects.find(x=>x.id===id); if(!p) return;
+  closeAllDd();const p=projects.find(x=>x.id===id);if(!p)return;
   $('confirm-title').textContent='Delete project?';
   $('confirm-msg').textContent=`"${p.name}" and all its sources and chat history will be permanently deleted.`;
   $('confirm-action-btn').textContent='Delete';
@@ -1045,27 +1252,170 @@ function buildEmojiGrid(){$('emoji-grid').innerHTML=EMOJIS.map(e=>`<div class="e
 function updateEmojiGrid(){document.querySelectorAll('.emoji-opt').forEach(el=>el.classList.toggle('selected',el.textContent===selEmoji));}
 function selectEmoji(e){selEmoji=e;updateEmojiGrid();}
 
-// ── Sources ──────────────────────────────────────────────
+// ── Threads ───────────────────────────────────────────────
+function renderThreads(){
+  const p=getProj();
+  // Legacy projects (no threads) — hide thread UI
+  if(!p||!p.threads){
+    $('thread-selector-wrap').style.display='none';
+    $('chat-title-wrap').style.display='block';
+    return;
+  }
+  $('thread-selector-wrap').style.display='flex';
+  $('chat-title-wrap').style.display='none';
+  const sel=$('thread-selector');sel.innerHTML='';
+  p.threads.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='thread-tab'+(t.id===activeThreadId?' active':'');
+    btn.innerHTML=`<span ondblclick="renameThread('${t.id}',event)" title="Double-click to rename">${esc(t.name)}</span>${p.threads.length>1?`<span class="thread-close" onclick="deleteThread('${t.id}',event)">×</span>`:''}`;
+    btn.onclick=(e)=>{if(e.target.classList.contains('thread-close'))return;switchThread(t.id);};
+    sel.appendChild(btn);
+  });
+  const addBtn=document.createElement('button');
+  addBtn.className='new-thread-btn';addBtn.title='New thread';addBtn.textContent='+';
+  addBtn.onclick=newThread;sel.appendChild(addBtn);
+}
+
+function switchThread(id){
+  activeThreadId=id;renderThreads();renderHistory();
+}
+
+function newThread(){
+  const p=getProj();if(!p||!p.threads)return;
+  const id=uid();const n=p.threads.length+1;
+  p.threads.push({id,name:`Thread ${n}`,history:[]});
+  activeThreadId=id;
+  renderThreads();renderHistory();
+  if(settings.autoSync!==false) saveAll();
+}
+
+function deleteThread(id,e){
+  e.stopPropagation();
+  const p=getProj();if(!p||!p.threads||p.threads.length<=1)return;
+  p.threads=p.threads.filter(t=>t.id!==id);
+  if(activeThreadId===id) activeThreadId=p.threads[0].id;
+  renderThreads();renderHistory();
+  if(settings.autoSync!==false) saveAll();
+}
+
+function renameThread(id,e){
+  e.stopPropagation();
+  const p=getProj();if(!p||!p.threads)return;
+  const t=p.threads.find(x=>x.id===id);if(!t)return;
+  const newName=prompt('Thread name:',t.name);
+  if(newName&&newName.trim()){t.name=newName.trim();renderThreads();if(settings.autoSync!==false)saveAll();}
+}
+
+// ── Sources ───────────────────────────────────────────────
+function getAllTags(){
+  const p=getProj();if(!p)return[];
+  const tags=new Set();
+  p.sources.forEach(s=>{(s.tags||[]).forEach(t=>tags.add(t));});
+  return [...tags];
+}
+
 function renderSources(){
-  const p=getProj(), el=$('sources-list');
-  const ICONS={text:'📄',file:'📁',url:'🌐',pdf:'📕',docx:'📝',doc:'📝',xlsx:'📊',xls:'📊',csv:'📊',pptx:'📋',ppt:'📋',html:'🌐',htm:'🌐',md:'📄'};
-  if(!p||!p.sources.length){el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No sources yet.</div>`;return;}
-  el.innerHTML=p.sources.map(s=>`
-    <div class="source-item${s.on?' active':''}" onclick="viewSrc('${s.id}')">
+  const p=getProj(),el=$('sources-list');
+  if(!p||!p.sources.length){
+    el.innerHTML=`<div style="padding:12px;text-align:center;font-size:11px;color:var(--text3)">No sources yet.</div>`;
+    $('tag-filter-row').style.display='none';
+    return;
+  }
+  // Tag filter row
+  const allTags=getAllTags();
+  if(allTags.length){
+    $('tag-filter-row').style.display='flex';
+    $('tag-filter-row').innerHTML=`<span style="font-size:10px;color:var(--text3);margin-right:2px">Tag:</span>`+
+      ['All',...allTags].map(t=>`<button class="tag-pill${(activeTagFilter===null&&t==='All')||(activeTagFilter===t)?' active':''}" onclick="setTagFilter(${t==='All'?'null':'\''+t+'\''})"">${esc(t)}</button>`).join('');
+  } else {
+    $('tag-filter-row').style.display='none';
+  }
+
+  const ICONS={text:'📄',file:'📁',url:'🌐',youtube:'🎬',pdf:'📕',docx:'📝',doc:'📝',xlsx:'📊',xls:'📊',csv:'📊',pptx:'📋',ppt:'📋',html:'🌐',htm:'🌐',md:'📄'};
+  let sources=p.sources;
+  if(searchQuery) sources=sources.filter(s=>s.name.toLowerCase().includes(searchQuery.toLowerCase())||s.content.toLowerCase().includes(searchQuery.toLowerCase()));
+  if(activeTagFilter) sources=sources.filter(s=>(s.tags||[]).includes(activeTagFilter));
+
+  el.innerHTML=sources.map(s=>`
+    <div class="source-item${s.on?' active':''}" id="si-${s.id}" draggable="true"
+      ondragstart="dragStart(event,'${s.id}')" ondragover="dragOver(event,'${s.id}')" ondragleave="dragLeave('${s.id}')" ondrop="dragDrop(event,'${s.id}')"
+      onclick="viewSrc('${s.id}')">
+      <input type="checkbox" class="src-checkbox${bulkSelected.has(s.id)?' checked':''}" ${bulkSelected.has(s.id)?'checked':''} onclick="toggleBulkSelect(event,'${s.id}')">
       <div class="src-icon">${ICONS[s.type]||'📄'}</div>
-      <div class="src-info"><div class="src-name">${esc(s.name)}</div><div class="src-preview">${esc(s.url||s.content.slice(0,45)+'…')}</div></div>
+      <div class="src-info">
+        <div class="src-name">${esc(s.name)}</div>
+        ${s.summary?`<div class="src-summary">${esc(s.summary)}</div>`:`<div class="src-summary" style="color:var(--text3)">${esc(s.content.slice(0,60))}…</div>`}
+        <div class="src-meta">
+          <span>${s.wordCount?s.wordCount.toLocaleString()+' words':''}</span>
+          ${(s.tags||[]).map(t=>`<span class="src-tag">${esc(t)}</span>`).join('')}
+        </div>
+      </div>
       <div class="src-toggle${s.on?' on':''}" onclick="toggleSrc(event,'${s.id}')"></div>
     </div>`).join('');
 }
+
+function filterSources(q){searchQuery=q;renderSources();}
+function setTagFilter(tag){activeTagFilter=tag;renderSources();}
+
+// Drag to reorder
+let dragSrcId=null;
+function dragStart(e,id){dragSrcId=id;e.dataTransfer.effectAllowed='move';}
+function dragOver(e,id){e.preventDefault();if(id!==dragSrcId) $('si-'+id)?.classList.add('drag-over');}
+function dragLeave(id){$('si-'+id)?.classList.remove('drag-over');}
+function dragDrop(e,targetId){
+  e.preventDefault();$('si-'+targetId)?.classList.remove('drag-over');
+  if(!dragSrcId||dragSrcId===targetId)return;
+  const p=getProj();if(!p)return;
+  const fromIdx=p.sources.findIndex(s=>s.id===dragSrcId);
+  const toIdx=p.sources.findIndex(s=>s.id===targetId);
+  if(fromIdx<0||toIdx<0)return;
+  const [moved]=p.sources.splice(fromIdx,1);p.sources.splice(toIdx,0,moved);
+  renderSources();if(settings.autoSync!==false)saveAll();
+  dragSrcId=null;
+}
+
+// Bulk select
+function toggleBulkSelect(e,id){
+  e.stopPropagation();
+  if(bulkSelected.has(id)) bulkSelected.delete(id); else bulkSelected.add(id);
+  renderSources();updateBulkBar();
+}
+function updateBulkBar(){
+  const n=bulkSelected.size;
+  $('bulk-bar').classList.toggle('show',n>0);
+  $('bulk-count').textContent=`${n} selected`;
+}
+function clearBulk(){bulkSelected.clear();renderSources();updateBulkBar();}
+async function bulkToggle(on){
+  const p=getProj();if(!p)return;
+  p.sources.filter(s=>bulkSelected.has(s.id)).forEach(s=>s.on=on);
+  clearBulk();renderSources();updateStatus();if(settings.autoSync!==false)await saveAll();
+}
+async function bulkDelete(){
+  const p=getProj();if(!p)return;
+  $('confirm-title').textContent=`Delete ${bulkSelected.size} sources?`;
+  $('confirm-msg').textContent='This cannot be undone.';
+  $('confirm-action-btn').textContent='Delete';
+  confirmCb=async()=>{
+    p.sources=p.sources.filter(s=>!bulkSelected.has(s.id));
+    clearBulk();renderSources();updateStatus();
+    if(settings.autoSync!==false)await saveAll();closeConfirm();
+  };
+  $('confirm-overlay').classList.add('open');
+}
+
 function toggleSrc(e,id){
   e.stopPropagation();const p=getProj();if(!p)return;
-  const s=p.sources.find(x=>x.id===id);if(s){s.on=!s.on;if(settings.autoSync!==false)saveAll();renderSources();updateStatus();}
+  const s=p.sources.find(x=>x.id===id);
+  if(s){s.on=!s.on;if(settings.autoSync!==false)saveAll();renderSources();updateStatus();}
 }
 function viewSrc(id){
   const p=getProj();if(!p)return;
   const s=p.sources.find(x=>x.id===id);if(!s)return;
   $('panel-title').textContent=s.name;$('panel-body').textContent=s.content;
-  const pu=$('panel-url');if(s.url){pu.style.display='block';pu.textContent=s.url;}else{pu.style.display='none';}
+  const pu=$('panel-url');
+  if(s.url){pu.style.display='block';pu.textContent=s.url;}
+  else{pu.style.display='none';}
   $('panel').classList.add('open');
 }
 function closePanel(){$('panel').classList.remove('open')}
@@ -1076,15 +1426,16 @@ function updateStatus(){
   updateSend();
 }
 
-// ── Chat ─────────────────────────────────────────────────
+// ── Chat ──────────────────────────────────────────────────
 function renderHistory(){
   const p=getProj(),el=$('messages');
-  if(!p||!p.history.length){
+  const history=getHistory();
+  if(!history.length){
     el.innerHTML=`<div class="empty-state"><div class="empty-icon">${p?p.emoji:'🔬'}</div><h3>${p?esc(p.name):'Research'}</h3><p>${p&&p.desc?esc(p.desc):'Add sources and ask questions.'}</p></div>`;
     $('quick-row').style.display='flex';return;
   }
   el.innerHTML='';$('quick-row').style.display='none';
-  p.history.forEach(m=>addBubbleDom(m.role==='user'?'user':'ai',m.content,m.oos,m.provider));
+  history.forEach((m,i)=>addBubbleDom(m.role==='user'?'user':'ai',m.content,m.oos,m.provider,m.citedSources,i));
   el.scrollTop=el.scrollHeight;
 }
 function updateSend(){const p=getProj();$('send-btn').disabled=!(p&&$('chat-input').value.trim()&&p.sources.some(s=>s.on));}
@@ -1096,30 +1447,44 @@ async function sendMsg(){
   const inp=$('chat-input'),text=inp.value.trim();
   if(!text||busy)return;
   const provider=settings.aiProvider||'anthropic';
-  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings (⌘,).');openSettings();return;}
+  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings.');openSettings();return;}
   const p=getProj();if(!p)return;
   const active=p.sources.filter(s=>s.on);if(!active.length)return;
   const el=$('messages');
   if(el.querySelector('.empty-state,.proj-home'))el.innerHTML='';
   $('quick-row').style.display='none';
-  addBubbleDom('user',text);
-  p.history.push({role:'user',content:text});
+  const history=getHistory();
+  addBubbleDom('user',text,false,'',null,history.length);
+  history.push({role:'user',content:text});
   inp.value='';inp.style.height='auto';updateSend();
   const tid=addThinking();busy=true;
   try {
-    let reply=provider==='ollama'?await callOllama(active,p.history.filter(m=>m.role==='user'||m.role==='assistant')):await callAnthropic(active,p.history.filter(m=>m.role==='user'||m.role==='assistant'));
+    const messages=history.filter(m=>m.role==='user'||m.role==='assistant');
+    let reply=provider==='ollama'?await callOllama(active,messages):await callAnthropic(active,messages);
     removeThinking(tid);
     const oos=reply.startsWith('NOT_IN_SOURCES:');
     const clean=oos?reply.replace('NOT_IN_SOURCES:','').trim():reply;
-    addBubbleDom('ai',clean,oos,provider);
-    p.history.push({role:'assistant',content:clean,oos,provider});
+    // Extract cited sources
+    const citedSources=extractCitedSources(clean,active);
+    addBubbleDom('ai',clean,oos,provider,citedSources,history.length);
+    history.push({role:'assistant',content:clean,oos,provider,citedSources});
     if(settings.autoSync!==false)saveAll();
   } catch(err){removeThinking(tid);addError(err.message);}
   busy=false;updateSend();
 }
 
+function extractCitedSources(text,activeSources){
+  const cited=[];
+  activeSources.forEach(s=>{
+    if(text.includes('['+s.name+']')||text.includes(s.name)){
+      if(!cited.find(c=>c.id===s.id)) cited.push({id:s.id,name:s.name});
+    }
+  });
+  return cited;
+}
+
 async function callAnthropic(active,messages){
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildPrompt(active),messages})});
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,system:buildPrompt(active),messages})});
   const data=await resp.json();
   if(data.error)throw new Error(data.error.message);
   return data.content?.map(b=>b.text||'').join('')||'No response.';
@@ -1133,276 +1498,119 @@ async function callOllama(active,messages){
 }
 function buildPrompt(active){
   const blocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}"${s.url?` url="${s.url}"`:''}>\n${s.content}\n</source>`).join('\n\n');
-  return `You are a strict research assistant. Your only knowledge base is the sources below. Do not use outside knowledge.\n\nRULES:\n1. Answer ONLY from sources.\n2. Cite source name using [Source Name].\n3. If not in sources: "NOT_IN_SOURCES: [explanation]"\n4. No "generally speaking" unless from a source.\n5. If partially covered, answer that and flag the rest.\n\nSources:\n\n${blocks}`;
+  return `You are a strict research assistant. Your only knowledge base is the sources below. Do not use outside knowledge.\n\nRULES:\n1. Answer ONLY from sources.\n2. ALWAYS cite the source name using [Source Name] inline when using information from it.\n3. If not in sources: reply "NOT_IN_SOURCES: [explanation]"\n4. No "generally speaking" unless from a source.\n5. If partially covered, answer that and flag the rest with NOT_IN_SOURCES.\n6. At the end of your response, if you cited sources, list them under "Sources cited:" on a new line.\n\nSources:\n\n${blocks}`;
 }
-function addBubbleDom(role,text,oos=false,provider='anthropic'){
+
+function addBubbleDom(role,text,oos=false,provider='anthropic',citedSources=null,msgIndex=-1){
   const el=$('messages'),d=document.createElement('div');d.className=`message ${role}`;
   const ac=role==='ai'?(provider==='ollama'?'avatar ai ollama':'avatar ai'):'avatar user';
   const al=role==='ai'?(provider==='ollama'?'🦙':'AI'):'You';
-  d.innerHTML=`<div class="${ac}">${al}</div><div class="bubble${oos?' oos':''}">${role==='ai'?fmtAI(text,oos):'<p>'+esc(text)+'</p>'}</div>`;
+  const bubbleContent=role==='ai'?fmtAI(text,oos,citedSources):`<p>${esc(text)}</p>`;
+  const editAttr=role==='user'&&msgIndex>=0?`onclick="openEditModal(${msgIndex},this)"`:'';
+  d.innerHTML=`<div class="${ac}">${al}</div><div class="bubble${oos?' oos':''}" ${editAttr}>${bubbleContent}</div>`;
   el.appendChild(d);el.scrollTop=el.scrollHeight;
 }
-function fmtAI(text,oos){
+
+function fmtAI(text,oos,citedSources){
   const pre=oos?`<div class="oos-label">⚠️ Not found in sources</div>`:'';
-  const html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  // Remove "Sources cited:" section from text (we render it separately)
+  const cleanText=text.replace(/\n*Sources cited:[\s\S]*$/i,'').trim();
+  const html=cleanText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
     .replace(/`(.*?)`/g,'<code style="font-family:var(--mono);background:var(--surface2);padding:1px 4px;border-radius:3px;font-size:11px">$1</code>')
-    .replace(/\[([^\]]+)\]/g,'<span class="cite">📎 $1</span>')
+    .replace(/\[([^\]]+)\]/g,'<span class="cite-inline">📎 $1</span>')
     .split('\n\n').map(p=>{
       if(p.startsWith('- ')||p.includes('\n- '))return`<ul>${p.split('\n').filter(l=>l.trim()).map(l=>`<li>${l.replace(/^[-•]\s*/,'')}</li>`).join('')}</ul>`;
       return`<p>${p.replace(/\n/g,'<br>')}</p>`;
     }).join('');
-  return pre+html;
+  // Cited sources list
+  let citedHtml='';
+  if(citedSources&&citedSources.length){
+    citedHtml=`<div class="cited-sources"><strong>Sources cited:</strong><div class="cited-list">${citedSources.map(c=>`<span class="cited-chip">📎 ${esc(c.name)}</span>`).join('')}</div></div>`;
+  }
+  return pre+html+citedHtml;
 }
-function addThinking(){const el=$('messages'),id='tk'+Date.now(),d=document.createElement('div');d.className='message ai';d.id=id;d.innerHTML=`<div class="avatar ai">AI</div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;el.appendChild(d);el.scrollTop=el.scrollHeight;return id;}
+
+function addThinking(){
+  const el=$('messages'),id='tk'+Date.now(),d=document.createElement('div');
+  d.className='message ai';d.id=id;
+  d.innerHTML=`<div class="avatar ai">AI</div><div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;return id;
+}
 function removeThinking(id){$(id)?.remove()}
 function addError(msg){const el=$('messages'),d=document.createElement('div');d.innerHTML=`<div class="err-bubble">⚠️ ${esc(msg)}</div>`;el.appendChild(d);el.scrollTop=el.scrollHeight;}
-function clearChat(){const p=getProj();if(!p)return;p.history=[];if(settings.autoSync!==false)saveAll();renderHistory();}
-
-// ── Podcast ──────────────────────────────────────────────
-async function generateScript(){
-  const p=getProj();
-  if(!p){alert('Please select a project first.');return;}
-  const active=p.sources.filter(s=>s.on);
-  if(!active.length){alert('Please activate at least one source in the sidebar.');return;}
-  const provider=settings.aiProvider||'anthropic';
-  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings.');openSettings();return;}
-
-  const format=$('pod-format').value;
-  const length=$('pod-length').value;
-  const tone=$('pod-tone').value||'conversational and engaging';
-  const isTwoHost=format==='two-host';
-
-  $('pod-gen-btn').disabled=true;
-  setPodStatus('generating','Generating script…');
-
-  const sourceBlocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}">\n${s.content.slice(0,4000)}\n</source>`).join('\n\n');
-
-  const prompt=isTwoHost
-    ?`You are a podcast script writer. Create a two-host podcast script based ONLY on the provided sources. 
-
-Format: Return ONLY a JSON array of lines, no other text. Each line: {"speaker":"Host1","text":"..."} or {"speaker":"Host2","text":"..."}
-
-Guidelines:
-- Tone: ${tone}
-- Target: approximately ${length} minutes of spoken content (~${parseInt(length)*130} words)
-- The hosts should discuss, debate, and explore ideas from the sources
-- Host1 tends to introduce topics and ask questions; Host2 tends to analyse and provide deeper insight
-- Include natural transitions, follow-up questions, and moments of agreement/disagreement
-- Start with a brief intro, end with a summary and sign-off
-- Base EVERYTHING on the sources — do not invent facts
-
-Sources:\n\n${sourceBlocks}`
-    :`You are a podcast script writer. Create a single-narrator podcast script based ONLY on the provided sources.
-
-Format: Return ONLY a JSON array of lines, no other text. Each line: {"speaker":"Narrator","text":"..."}
-
-Guidelines:
-- Tone: ${tone}
-- Target: approximately ${length} minutes of spoken content (~${parseInt(length)*130} words)
-- Structure: intro, main content organised by theme, conclusion
-- Base EVERYTHING on the sources — do not invent facts
-
-Sources:\n\n${sourceBlocks}`;
-
-  try {
-    let raw;
-    if(provider==='anthropic'){
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})});
-      const data=await resp.json();
-      if(data.error)throw new Error(data.error.message);
-      raw=data.content?.map(b=>b.text||'').join('')||'';
-    } else {
-      const host=settings.ollamaHost||'http://localhost:11434',model=settings.ollamaModel||'llama3';
-      const resp=await fetch(`${host}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:false})});
-      const data=await resp.json();
-      raw=data.choices?.[0]?.message?.content||'';
-    }
-
-    // Parse JSON from response
-    const jm=raw.match(/\[[\s\S]*\]/);
-    if(!jm)throw new Error('Could not parse script — try again');
-    podScript=JSON.parse(jm[0]);
-    if(!podScript.length)throw new Error('Script was empty');
-
-    renderScript();
-    $('podcast-player').style.display='block';
-    setPodStatus('','Script ready — review, edit, then generate audio');
-
-    // Show voice config if ElevenLabs key set
-    if(settings.elevenlabsKey&&elVoices.length){
-      $('voice-config').style.display='grid';
-      $('voice-h2-field').style.display=isTwoHost?'flex':'none';
-    }
-
-  } catch(err){
-    setPodStatus('err','Error: '+err.message);
-  }
-  $('pod-gen-btn').disabled=false;
+function clearChat(){
+  const history=getHistory();if(!history.length)return;
+  history.splice(0,history.length);
+  if(settings.autoSync!==false)saveAll();renderHistory();
 }
 
-function renderScript(){
-  const area=$('script-area');
-  $('script-empty').style.display='none';
-  area.innerHTML='';
-  podScript.forEach((line,i)=>{
-    const spk=line.speaker||'Narrator';
-    const cls=spk==='Host1'?'host1':spk==='Host2'?'host2':'narrator';
-    const div=document.createElement('div');div.className='script-line';
-    div.innerHTML=`<div class="script-speaker ${cls}">${esc(spk)}</div><div class="script-text" contenteditable="true" data-i="${i}">${esc(line.text)}</div>`;
-    area.appendChild(div);
-  });
-  // Sync edits back to podScript
-  area.querySelectorAll('.script-text').forEach(el=>{
-    el.addEventListener('blur',()=>{podScript[parseInt(el.dataset.i)].text=el.textContent;});
-  });
+// ── Edit & resend ─────────────────────────────────────────
+function openEditModal(msgIndex,bubble){
+  const history=getHistory();
+  if(msgIndex<0||msgIndex>=history.length)return;
+  editMsgIndex=msgIndex;
+  $('edit-input').value=history[msgIndex].content;
+  $('edit-overlay').classList.add('open');
+  setTimeout(()=>$('edit-input').focus(),120);
+}
+function closeEditModal(){$('edit-overlay').classList.remove('open');editMsgIndex=-1;}
+async function resendEdited(){
+  const newText=$('edit-input').value.trim();if(!newText)return;
+  const history=getHistory();
+  if(editMsgIndex<0||editMsgIndex>=history.length)return;
+  // Truncate history to edited message and resend
+  history.splice(editMsgIndex);
+  closeEditModal();
+  renderHistory();
+  const inp=$('chat-input');inp.value=newText;resize(inp);
+  await sendMsg();
 }
 
-function setPodStatus(type,msg){
-  const el=$('pod-status');
-  el.className=`pod-status${type==='generating'?' generating':''}`;
-  el.textContent=msg;
+// ── Send to podcast ───────────────────────────────────────
+function sendToPodcast(){
+  const history=getHistory();if(!history.length){switchMainTab('podcast');return;}
+  // Pre-fill the script with the conversation summary prompt
+  const inp=$('chat-input');
+  inp.value='Summarize the key findings and insights from our conversation to use as a podcast script basis.';
+  resize(inp);switchMainTab('podcast');
 }
 
-// ── ElevenLabs ───────────────────────────────────────────
-async function loadELVoices(){
-  try {
-    const resp=await fetch('https://api.elevenlabs.io/v1/voices',{headers:{'xi-api-key':settings.elevenlabsKey}});
-    const data=await resp.json();
-    elVoices=(data.voices||[]).map(v=>({id:v.voice_id,name:v.name}));
-    ['voice-h1','voice-h2'].forEach(id=>{
-      const sel=$(id); sel.innerHTML='';
-      elVoices.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.name;sel.appendChild(o);});
-    });
-    // Default: pick different voices for the two hosts
-    if(elVoices.length>1) $('voice-h2').selectedIndex=1;
-  } catch(e){elVoices=[];}
-}
+// ── Export chat ───────────────────────────────────────────
+function exportChatMenu(){$('export-overlay').classList.add('open');}
+function closeExportMenu(){$('export-overlay').classList.remove('open');}
 
-async function generateAudio(){
-  if(!podScript.length){alert('Generate a script first.');return;}
-  const hasEL=settings.elevenlabsKey&&elVoices.length;
-
-  $('btn-gen-audio').disabled=true;
-  $('audio-progress-bar').style.display='block';
-  $('audio-status').textContent='';
-  $('play-btn').disabled=true;
-  $('btn-export-audio').style.display='none';
-
-  if(hasEL){
-    await generateELAudio();
-  } else {
-    await generateMacTTSAudio();
-  }
-  $('btn-gen-audio').disabled=false;
-}
-
-async function generateELAudio(){
-  const h1Voice=$('voice-h1').value;
-  const h2Voice=$('voice-h2').value;
-  const chunks=[];
-  let done=0;
-
-  $('audio-source-label').textContent='Generating with ElevenLabs…';
-
-  for(const line of podScript){
-    const voiceId=line.speaker==='Host2'?h2Voice:h1Voice;
-    try {
-      const resp=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','xi-api-key':settings.elevenlabsKey},
-        body:JSON.stringify({text:line.text,model_id:'eleven_multilingual_v2',voice_settings:{stability:0.5,similarity_boost:0.75}})
-      });
-      if(!resp.ok)throw new Error(`ElevenLabs error ${resp.status}`);
-      const buf=await resp.arrayBuffer();
-      chunks.push(new Uint8Array(buf));
-    } catch(e){
-      $('audio-status').textContent=`⚠️ Line failed: ${e.message}`;
-    }
-    done++;
-    $('audio-progress-fill').style.width=`${Math.round(done/podScript.length*100)}%`;
-  }
-
-  // Concatenate all MP3 chunks
-  const total=chunks.reduce((a,c)=>a+c.length,0);
-  const merged=new Uint8Array(total);
-  let offset=0;
-  chunks.forEach(c=>{merged.set(c,offset);offset+=c.length;});
-  podAudioBlob=new Blob([merged],{type:'audio/mpeg'});
-  podAudioUrl=URL.createObjectURL(podAudioBlob);
-  setupPlayer(podAudioUrl,'ElevenLabs AI voices');
-}
-
-async function generateMacTTSAudio(){
-  const ttsLabel = isMac() ? 'macOS built-in TTS' : 'Windows built-in TTS';
-  const fileExt = isMac() ? 'AIFF' : 'WAV';
-  $('audio-source-label').textContent=`Generating with ${ttsLabel}…`;
-  const fullText=podScript.map(l=>`${l.speaker}: ${l.text}`).join('\n\n');
-  const result=await window.electron.tts(fullText);
-  if(!result.ok){$('audio-status').textContent='⚠️ TTS failed: '+result.error;$('audio-progress-bar').style.display='none';return;}
-  podAudioUrl=result.fileUrl;
-  podTTSFilePath=result.filePath;
-  podAudioBlob=null;
-  setupPlayer(result.fileUrl,ttsLabel);
-  $('btn-export-audio').style.display='inline-flex';
-  $('btn-export-audio').textContent=`💾 Save ${fileExt}`;
-}
-
-function setupPlayer(url,label){
-  $('audio-source-label').textContent=label;
-  $('audio-progress-bar').style.display='none';
-  $('play-btn').disabled=false;
-  $('btn-export-audio').style.display=podAudioBlob?'inline-flex':'none';
-  if(audioEl){audioEl.pause();URL.revokeObjectURL(audioEl._blobUrl);}
-  audioEl=new Audio(url); audioEl._blobUrl=url;
-  audioEl.addEventListener('timeupdate',()=>{
-    const pct=audioEl.duration?(audioEl.currentTime/audioEl.duration*100):0;
-    $('progress-bar').value=pct;
-    $('time-current').textContent=fmtTime(audioEl.currentTime);
-    $('time-total').textContent=fmtTime(audioEl.duration||0);
-  });
-  audioEl.addEventListener('ended',()=>{$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';});
-  $('audio-status').textContent='Audio ready!';
-}
-
-function togglePlay(){
-  if(!audioEl)return;
-  if(audioEl.paused){audioEl.play();$('play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}
-  else{audioEl.pause();$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';}
-}
-
-function seekAudio(val){if(audioEl&&audioEl.duration)audioEl.currentTime=audioEl.duration*(val/100);}
-function fmtTime(s){if(isNaN(s))return'0:00';const m=Math.floor(s/60);return`${m}:${String(Math.floor(s%60)).padStart(2,'0')}`;}
-
-async function exportScript(){
-  if(!podScript.length){alert('No script to export.');return;}
-  let txt=podScript.map(l=>`${l.speaker}:\n${l.text}`).join('\n\n');
-  const r=await window.electron.showSaveDialog({defaultPath:'podcast_script.txt',filters:[{name:'Text',extensions:['txt']},{name:'Markdown',extensions:['md']}]});
-  if(!r.canceled&&r.filePath) await window.electron.writeFile(r.filePath,txt);
-}
-
-async function exportAudio(){
-  if(!podAudioBlob&&!podTTSFilePath){alert('No audio to export.');return;}
-  const ext=podAudioBlob?'mp3':'aiff';
-  const r=await window.electron.showSaveDialog({defaultPath:`podcast.${ext}`,filters:[{name:ext.toUpperCase(),extensions:[ext]}]});
-  if(r.canceled||!r.filePath)return;
-  if(podAudioBlob){
-    const ab=await podAudioBlob.arrayBuffer();
-    const b64=btoa(String.fromCharCode(...new Uint8Array(ab)));
-    await window.electron.writeFileBase64(r.filePath,b64);
-  } else {
-    await window.electron.copyTTSFile(podTTSFilePath,r.filePath);
-  }
-}
-
-// ── Export / Import ──────────────────────────────────────
 async function exportChatMd(){
-  const p=getProj();if(!p||!p.history.length){alert('No chat history to export.');return;}
+  closeExportMenu();
+  const p=getProj();const history=getHistory();
+  if(!p||!history.length){alert('No chat history to export.');return;}
   let md=`# ${p.name} — Chat Export\n\n_Exported ${new Date().toLocaleString()}_\n\n---\n\n`;
-  p.history.forEach(m=>{md+=m.role==='user'?`**You:** ${m.content}\n\n`:`**RAG Research Workbook:** ${m.content}\n\n`;});
+  history.forEach(m=>{md+=m.role==='user'?`**You:** ${m.content}\n\n`:`**RAG Research Workbook:** ${m.content}\n\n`;});
   const r=await window.electron.showSaveDialog({defaultPath:`${p.name.replace(/[^a-z0-9]/gi,'_')}_chat.md`,filters:[{name:'Markdown',extensions:['md']},{name:'Text',extensions:['txt']}]});
   if(!r.canceled&&r.filePath){const res=await window.electron.writeFile(r.filePath,md);if(!res.ok)alert('Export failed: '+res.error);}
 }
+async function doExportDocx(){
+  closeExportMenu();
+  const p=getProj();const history=getHistory();
+  if(!p||!history.length){alert('No chat history to export.');return;}
+  const r=await window.electron.showSaveDialog({defaultPath:`${p.name.replace(/[^a-z0-9]/gi,'_')}_chat.docx`,filters:[{name:'Word Document',extensions:['docx']}]});
+  if(!r.canceled&&r.filePath){
+    const res=await window.electron.exportChatDocx({filePath:r.filePath,projectName:p.name,history});
+    if(!res.ok)alert('Export failed: '+res.error);
+  }
+}
+async function doExportPdf(){
+  closeExportMenu();
+  const p=getProj();const history=getHistory();
+  if(!p||!history.length){alert('No chat history to export.');return;}
+  const r=await window.electron.showSaveDialog({defaultPath:`${p.name.replace(/[^a-z0-9]/gi,'_')}_chat.pdf`,filters:[{name:'PDF',extensions:['pdf']}]});
+  if(!r.canceled&&r.filePath){
+    const res=await window.electron.exportChatPdf({filePath:r.filePath,projectName:p.name,history});
+    if(!res.ok)alert('Export failed: '+res.error);
+  }
+}
+
+// ── Export / Import JSON ──────────────────────────────────
 async function exportJSON(){
   const r=await window.electron.showSaveDialog({defaultPath:`rag_workbook_backup_${new Date().toISOString().slice(0,10)}.json`,filters:[{name:'JSON',extensions:['json']}]});
   if(!r.canceled&&r.filePath)await window.electron.writeFile(r.filePath,JSON.stringify({projects,exportedAt:new Date().toISOString()},null,2));
@@ -1428,16 +1636,39 @@ async function importJSON(){
   } catch(e){alert('Invalid JSON file.');}
 }
 
-// ── Add source ───────────────────────────────────────────
+// ── Tags ──────────────────────────────────────────────────
+function addTagFromInput(e,scope='text'){
+  if(e.key!=='Enter')return;
+  e.preventDefault();
+  const inputId=scope==='text'?'src-tag-input':scope==='url'?'url-tag-input':scope==='yt'?'yt-tag-input':'file-tag-input';
+  const displayId=scope==='text'?'src-tags-display':scope==='url'?'url-tags-display':scope==='yt'?'yt-tags-display':'file-tags-display';
+  const inp=$(inputId);const tag=inp.value.trim().toLowerCase();
+  if(!tag||currentSrcTags[scope].includes(tag))return;
+  currentSrcTags[scope].push(tag);inp.value='';renderTagsDisplay(scope,displayId);
+}
+function removeTag(scope,tag){
+  currentSrcTags[scope]=currentSrcTags[scope].filter(t=>t!==tag);
+  const displayId=scope==='text'?'src-tags-display':scope==='url'?'url-tags-display':scope==='yt'?'yt-tags-display':'file-tags-display';
+  renderTagsDisplay(scope,displayId);
+}
+function renderTagsDisplay(scope,displayId){
+  $(displayId).innerHTML=currentSrcTags[scope].map(t=>`<span class="tag-badge">${esc(t)}<span class="remove-tag" onclick="removeTag('${scope}','${t}')">×</span></span>`).join('');
+}
+
+// ── Add source ────────────────────────────────────────────
 function openAddSource(){
   if(!getProj()){alert('Please select a project first.');return;}
-  $('src-name').value='';$('src-text').value='';$('url-in').value='';
-  $('url-preview').style.display='none';$('fetch-status').style.display='none';$('file-status').style.display='none';
-  fetchedContent=null;fetchedUrl=null;pendingFile=null;
+  $('src-name').value='';$('src-text').value='';$('url-in').value='';$('yt-url-in').value='';
+  $('url-preview').style.display='none';$('fetch-status').style.display='none';
+  $('yt-preview').style.display='none';$('yt-fetch-status').style.display='none';
+  $('file-status').style.display='none';$('file-tag-row').style.display='none';
+  fetchedContent=null;fetchedUrl=null;fetchedYT=null;pendingFile=null;
+  currentSrcTags={text:[],url:[],yt:[],file:[]};
+  ['src-tags-display','url-tags-display','yt-tags-display','file-tags-display'].forEach(id=>$(id).innerHTML='');
   switchTab('text',$('t-text'));$('src-overlay').classList.add('open');
 }
 function closeSrcModal(){$('src-overlay').classList.remove('open')}
-function switchTab(tab,btn){curTab=tab;['text','url','file'].forEach(t=>{$('t-'+t).classList.toggle('on',t===tab);$('pane-'+t).style.display=t===tab?'block':'none';});}
+function switchTab(tab,btn){curTab=tab;['text','url','yt','file'].forEach(t=>{$('t-'+t).classList.toggle('on',t===tab);$('pane-'+t).style.display=t===tab?'block':'none';});}
 
 async function doFetch(){
   const url=$('url-in').value.trim();if(!url)return;
@@ -1468,6 +1699,20 @@ async function doFetchAI(url){
   $('fetch-btn').disabled=false;
 }
 function showFetch(type,msg){const el=$('fetch-status');el.style.display='flex';el.className=`status-box ${type}`;el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);}
+function showYTFetch(type,msg){const el=$('yt-fetch-status');el.style.display='flex';el.className=`status-box ${type}`;el.innerHTML=type==='loading'?`<div class="spinner"></div>${esc(msg)}`:esc(msg);}
+
+async function doYTFetch(){
+  const url=$('yt-url-in').value.trim();if(!url)return;
+  showYTFetch('loading','Fetching YouTube transcript…');$('yt-fetch-btn').disabled=true;$('yt-preview').style.display='none';fetchedYT=null;
+  const r=await window.electron.fetchYouTubeTranscript(url);
+  $('yt-fetch-btn').disabled=false;
+  if(!r.ok){showYTFetch('err',r.error);return;}
+  fetchedYT={content:r.content,url,videoId:r.videoId,language:r.language};
+  $('yt-name').value=r.title;$('yt-body').value=r.content;
+  $('yt-char-ct').textContent=`${r.content.length.toLocaleString()} chars · ${r.lineCount} lines · ${r.language}`;
+  $('yt-preview').style.display='block';
+  showYTFetch('ok',`✓ Transcript fetched (${r.lineCount} lines, language: ${r.language})`);
+}
 
 function triggerFile(){$('file-in').click()}
 function dov(e){e.preventDefault();$('drop-zone').classList.add('drag')}
@@ -1483,22 +1728,226 @@ async function loadFile(file){
   pendingFile={name:file.name.replace(/\.[^.]+$/,''),content:result.content};
   s.style.color='var(--green)';
   s.textContent=`✓ ${file.name} — ${result.content.length.toLocaleString()} chars${result.pages?' · '+result.pages+' pages':''}`;
+  $('file-tag-row').style.display='block';
 }
 
 async function addSrc(){
   const p=getProj();if(!p)return;
-  let name,content,url=null,type='text';
-  if(curTab==='text'){name=$('src-name').value.trim()||'Untitled';content=$('src-text').value.trim();if(!content){alert('Please paste some text.');return;}}
-  else if(curTab==='url'){if(!fetchedContent){alert('Please fetch a URL first.');return;}name=$('url-name').value.trim()||'Web source';content=fetchedContent;url=fetchedUrl;type='url';}
-  else{if(!pendingFile){alert('Please select a file.');return;}name=pendingFile.name;content=pendingFile.content;const ext=($('file-in').files[0]?.name||'').split('.').pop().toLowerCase();type=ext||'file';}
-  p.sources.push({id:uid(),name,type,url,on:true,content});
-  if(settings.autoSync!==false)await saveAll();
+  let name,content,url=null,type='text',tags=[];
+  if(curTab==='text'){
+    name=$('src-name').value.trim()||'Untitled';content=$('src-text').value.trim();
+    if(!content){alert('Please paste some text.');return;}tags=currentSrcTags.text;
+  } else if(curTab==='url'){
+    if(!fetchedContent){alert('Please fetch a URL first.');return;}
+    name=$('url-name').value.trim()||'Web source';content=fetchedContent;url=fetchedUrl;type='url';tags=currentSrcTags.url;
+  } else if(curTab==='yt'){
+    if(!fetchedYT){alert('Please fetch a YouTube transcript first.');return;}
+    name=$('yt-name').value.trim()||'YouTube video';content=fetchedYT.content;url=fetchedYT.url;type='youtube';tags=currentSrcTags.yt;
+  } else {
+    if(!pendingFile){alert('Please select a file.');return;}
+    name=pendingFile.name;content=pendingFile.content;
+    const ext=($('file-in').files[0]?.name||'').split('.').pop().toLowerCase();type=ext||'file';tags=currentSrcTags.file;
+  }
+
+  // Word count
+  const wordCount=content.trim().split(/\s+/).length;
+
+  const src={id:uid(),name,type,url,on:true,content,tags,wordCount,summary:null};
+  p.sources.push(src);
+  if(settings.autoSync!==false) saveAll();
   renderSources();updateStatus();closeSrcModal();
+
+  // Generate AI summary in background
+  generateSummaryForSource(src,p);
 }
 
-// ── Confirm ──────────────────────────────────────────────
+async function generateSummaryForSource(src,p){
+  if(!settings.apiKey&&settings.aiProvider!=='ollama') return; // No AI available
+  const result=await window.electron.generateSourceSummary({
+    content:src.content,
+    apiKey:settings.apiKey,
+    provider:settings.aiProvider||'anthropic',
+    ollamaHost:settings.ollamaHost,
+    ollamaModel:settings.ollamaModel
+  });
+  if(result.ok&&result.summary){
+    const s=p.sources.find(x=>x.id===src.id);
+    if(s){s.summary=result.summary;renderSources();if(settings.autoSync!==false)saveAll();}
+  }
+}
+
+// ── Confirm ────────────────────────────────────────────────
 function closeConfirm(){$('confirm-overlay').classList.remove('open');confirmCb=null}
 function confirmAction(){if(confirmCb)confirmCb()}
+
+// ── Podcast ───────────────────────────────────────────────
+async function generateScript(){
+  const p=getProj();
+  if(!p){alert('Please select a project first.');return;}
+  const active=p.sources.filter(s=>s.on);
+  if(!active.length){alert('Please activate at least one source in the sidebar.');return;}
+  const provider=settings.aiProvider||'anthropic';
+  if(provider==='anthropic'&&!settings.apiKey){alert('Please set your Anthropic API key in Settings.');openSettings();return;}
+
+  const format=$('pod-format').value;
+  const length=$('pod-length').value;
+  const tone=$('pod-tone').value||'conversational and engaging';
+  const isTwoHost=format==='two-host';
+
+  $('pod-gen-btn').disabled=true;setPodStatus('generating','Generating script…');
+
+  const sourceBlocks=active.map((s,i)=>`<source id="${i+1}" name="${s.name}">\n${s.content.slice(0,4000)}\n</source>`).join('\n\n');
+
+  const prompt=isTwoHost
+    ?`You are a podcast script writer. Create a two-host podcast script based ONLY on the provided sources.\n\nFormat: Return ONLY a JSON array of lines, no other text. Each line:\n{"speaker":"Host1","text":"...","sources":["Source Name"]}\nor\n{"speaker":"Host2","text":"...","sources":["Source Name"]}\n\nThe "sources" field should list the source names the line draws from (empty array if none).\n\nGuidelines:\n- Tone: ${tone}\n- Target: approximately ${length} minutes (~${parseInt(length)*130} words)\n- Start with intro, end with summary and sign-off\n- Base EVERYTHING on the sources\n\nSources:\n\n${sourceBlocks}`
+    :`You are a podcast script writer. Create a single-narrator podcast script based ONLY on the provided sources.\n\nFormat: Return ONLY a JSON array of lines, no other text. Each line:\n{"speaker":"Narrator","text":"...","sources":["Source Name"]}\n\nThe "sources" field should list the source names the line draws from.\n\nGuidelines:\n- Tone: ${tone}\n- Target: approximately ${length} minutes (~${parseInt(length)*130} words)\n- Base EVERYTHING on the sources\n\nSources:\n\n${sourceBlocks}`;
+
+  try {
+    let raw;
+    if(provider==='anthropic'){
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]})});
+      const data=await resp.json();if(data.error)throw new Error(data.error.message);
+      raw=data.content?.map(b=>b.text||'').join('')||'';
+    } else {
+      const host=settings.ollamaHost||'http://localhost:11434',model=settings.ollamaModel||'llama3';
+      const resp=await fetch(`${host}/v1/chat/completions`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model,messages:[{role:'user',content:prompt}],stream:false})});
+      const data=await resp.json();raw=data.choices?.[0]?.message?.content||'';
+    }
+    const jm=raw.match(/\[[\s\S]*\]/);if(!jm)throw new Error('Could not parse script — try again');
+    podScript=JSON.parse(jm[0]);if(!podScript.length)throw new Error('Script was empty');
+    renderScript();
+    $('podcast-player').style.display='block';
+    setPodStatus('','Script ready — review, edit, then generate audio');
+    if(settings.elevenlabsKey&&elVoices.length){
+      $('voice-config').style.display='grid';
+      $('voice-h2-field').style.display=isTwoHost?'flex':'none';
+    }
+  } catch(err){setPodStatus('err','Error: '+err.message);}
+  $('pod-gen-btn').disabled=false;
+}
+
+function renderScript(){
+  const area=$('script-area');
+  $('script-empty').style.display='none';area.innerHTML='';
+  podScript.forEach((line,i)=>{
+    const spk=line.speaker||'Narrator';
+    const cls=spk==='Host1'?'host1':spk==='Host2'?'host2':'narrator';
+    const sources=line.sources&&line.sources.length?line.sources:[];
+    const div=document.createElement('div');div.className='script-line';
+    div.innerHTML=`<div class="script-speaker ${cls}">${esc(spk)}</div>
+      <div style="flex:1">
+        <div class="script-text" contenteditable="true" data-i="${i}">${esc(line.text)}</div>
+        ${sources.length?`<div class="script-cite">📎 ${sources.map(s=>esc(s)).join(', ')}</div>`:''}
+      </div>`;
+    area.appendChild(div);
+  });
+  area.querySelectorAll('.script-text').forEach(el=>{
+    el.addEventListener('blur',()=>{podScript[parseInt(el.dataset.i)].text=el.textContent;});
+  });
+}
+function setPodStatus(type,msg){const el=$('pod-status');el.className=`pod-status${type==='generating'?' generating':''}`;el.textContent=msg;}
+
+// ── ElevenLabs ────────────────────────────────────────────
+async function loadELVoices(){
+  try {
+    const resp=await fetch('https://api.elevenlabs.io/v1/voices',{headers:{'xi-api-key':settings.elevenlabsKey}});
+    const data=await resp.json();
+    elVoices=(data.voices||[]).map(v=>({id:v.voice_id,name:v.name}));
+    ['voice-h1','voice-h2'].forEach(id=>{
+      const sel=$(id);sel.innerHTML='';
+      elVoices.forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.name;sel.appendChild(o);});
+    });
+    if(elVoices.length>1) $('voice-h2').selectedIndex=1;
+  } catch(e){elVoices=[];}
+}
+
+async function generateAudio(){
+  if(!podScript.length){alert('Generate a script first.');return;}
+  const hasEL=settings.elevenlabsKey&&elVoices.length;
+  $('btn-gen-audio').disabled=true;$('audio-progress-bar').style.display='block';
+  $('audio-status').textContent='';$('play-btn').disabled=true;$('btn-export-audio').style.display='none';
+  if(hasEL) await generateELAudio(); else await generateTTSAudio();
+  $('btn-gen-audio').disabled=false;
+}
+
+async function generateELAudio(){
+  const h1Voice=$('voice-h1').value,h2Voice=$('voice-h2').value;
+  const chunks=[];let done=0;
+  $('audio-source-label').textContent='Generating with ElevenLabs…';
+  for(const line of podScript){
+    const voiceId=line.speaker==='Host2'?h2Voice:h1Voice;
+    try {
+      const resp=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,{method:'POST',headers:{'Content-Type':'application/json','xi-api-key':settings.elevenlabsKey},body:JSON.stringify({text:line.text,model_id:'eleven_multilingual_v2',voice_settings:{stability:0.5,similarity_boost:0.75}})});
+      if(!resp.ok)throw new Error(`ElevenLabs error ${resp.status}`);
+      chunks.push(new Uint8Array(await resp.arrayBuffer()));
+    } catch(e){$('audio-status').textContent=`⚠️ Line failed: ${e.message}`;}
+    done++;$('audio-progress-fill').style.width=`${Math.round(done/podScript.length*100)}%`;
+  }
+  const total=chunks.reduce((a,c)=>a+c.length,0);
+  const merged=new Uint8Array(total);let offset=0;
+  chunks.forEach(c=>{merged.set(c,offset);offset+=c.length;});
+  podAudioBlob=new Blob([merged],{type:'audio/mpeg'});
+  podAudioUrl=URL.createObjectURL(podAudioBlob);
+  setupPlayer(podAudioUrl,'ElevenLabs AI voices');
+  $('btn-export-audio').style.display='inline-flex';$('btn-export-audio').textContent='💾 Save MP3';
+}
+
+async function generateTTSAudio(){
+  const ttsLabel=navigator.platform.includes('Mac')?'macOS built-in TTS':'Windows built-in TTS';
+  $('audio-source-label').textContent=`Generating with ${ttsLabel}…`;
+  const fullText=podScript.map(l=>`${l.speaker}: ${l.text}`).join('\n\n');
+  const result=await window.electron.tts(fullText);
+  if(!result.ok){$('audio-status').textContent='⚠️ TTS failed: '+result.error;$('audio-progress-bar').style.display='none';return;}
+  podAudioUrl=result.fileUrl;podTTSFilePath=result.filePath;podAudioBlob=null;
+  setupPlayer(result.fileUrl,ttsLabel);
+  $('btn-export-audio').style.display='inline-flex';
+  $('btn-export-audio').textContent=result.format==='aiff'?'💾 Save AIFF':'💾 Save WAV';
+}
+
+function setupPlayer(url,label){
+  $('audio-source-label').textContent=label;$('audio-progress-bar').style.display='none';
+  $('play-btn').disabled=false;
+  if(audioEl){audioEl.pause();}
+  audioEl=new Audio(url);audioEl._blobUrl=url;
+  audioEl.addEventListener('timeupdate',()=>{
+    const pct=audioEl.duration?(audioEl.currentTime/audioEl.duration*100):0;
+    $('progress-bar').value=pct;
+    $('time-current').textContent=fmtTime(audioEl.currentTime);
+    $('time-total').textContent=fmtTime(audioEl.duration||0);
+  });
+  audioEl.addEventListener('ended',()=>{$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';});
+  $('audio-status').textContent='Audio ready!';
+}
+function togglePlay(){
+  if(!audioEl)return;
+  if(audioEl.paused){audioEl.play();$('play-icon').innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';}
+  else{audioEl.pause();$('play-icon').innerHTML='<polygon points="5 3 19 12 5 21 5 3"/>';}
+}
+function seekAudio(val){if(audioEl&&audioEl.duration)audioEl.currentTime=audioEl.duration*(val/100);}
+function fmtTime(s){if(isNaN(s))return'0:00';const m=Math.floor(s/60);return`${m}:${String(Math.floor(s%60)).padStart(2,'0')}`;}
+
+async function exportScript(){
+  if(!podScript.length){alert('No script to export.');return;}
+  const txt=podScript.map(l=>{
+    const cite=l.sources&&l.sources.length?` [${l.sources.join(', ')}]`:'';
+    return`${l.speaker}:\n${l.text}${cite}`;
+  }).join('\n\n');
+  const r=await window.electron.showSaveDialog({defaultPath:'podcast_script.txt',filters:[{name:'Text',extensions:['txt']},{name:'Markdown',extensions:['md']}]});
+  if(!r.canceled&&r.filePath) await window.electron.writeFile(r.filePath,txt);
+}
+async function exportAudio(){
+  if(!podAudioBlob&&!podTTSFilePath){alert('No audio to export.');return;}
+  const ext=podAudioBlob?'mp3':podTTSFilePath?.endsWith('.aiff')?'aiff':'wav';
+  const r=await window.electron.showSaveDialog({defaultPath:`podcast.${ext}`,filters:[{name:ext.toUpperCase(),extensions:[ext]}]});
+  if(r.canceled||!r.filePath)return;
+  if(podAudioBlob){
+    const ab=await podAudioBlob.arrayBuffer();
+    const b64=btoa(String.fromCharCode(...new Uint8Array(ab)));
+    await window.electron.writeFileBase64(r.filePath,b64);
+  } else {
+    await window.electron.copyTTSFile(podTTSFilePath,r.filePath);
+  }
+}
 
 init();
 </script>

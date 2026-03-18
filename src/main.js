@@ -448,6 +448,175 @@ $s.Dispose();
   return { ok: false, error: 'TTS not supported on this platform.' };
 });
 
+// ── YouTube transcript fetcher ─────────────────────────────────────────────
+ipcMain.handle('fetch-youtube-transcript', async (e, url) => {
+  try {
+    // Extract video ID from various YouTube URL formats
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    ];
+    let videoId = null;
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) { videoId = m[1]; break; }
+    }
+    if (!videoId) return { ok: false, error: 'Could not extract video ID from URL. Please make sure this is a valid YouTube link.' };
+
+    // Fetch the video page to get the title and timedtext URL
+    const pageHtml = await fetchUrlNative(`https://www.youtube.com/watch?v=${videoId}`);
+
+    // Extract title
+    const titleMatch = pageHtml.match(/"title":"([^"]+)"/);
+    const title = titleMatch ? titleMatch[1].replace(/\\u0026/g, '&').replace(/\\"/g, '"') : `YouTube Video ${videoId}`;
+
+    // Try to find captions track list URL
+    const captionsMatch = pageHtml.match(/"captionTracks":\s*(\[.*?\])/);
+    if (!captionsMatch) {
+      return { ok: false, error: 'No captions found for this video. The video may not have captions enabled, or they may be disabled by the uploader.' };
+    }
+
+    let tracks;
+    try { tracks = JSON.parse(captionsMatch[1]); } catch(e) {
+      return { ok: false, error: 'Could not parse captions data from YouTube.' };
+    }
+
+    if (!tracks.length) return { ok: false, error: 'No caption tracks available for this video.' };
+
+    // Prefer English, then auto-generated English, then first available
+    const preferred = tracks.find(t => t.languageCode === 'en' && !t.kind) ||
+                      tracks.find(t => t.languageCode === 'en') ||
+                      tracks.find(t => t.languageCode?.startsWith('en')) ||
+                      tracks[0];
+
+    const trackUrl = preferred.baseUrl.replace(/\\u0026/g, '&');
+    const xmlContent = await fetchUrlNative(trackUrl);
+
+    // Parse the XML transcript
+    const lines = [];
+    const textMatches = xmlContent.matchAll(/<text[^>]*start="([^"]+)"[^>]*>([\s\S]*?)<\/text>/g);
+    for (const m of textMatches) {
+      const text = m[2]
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
+        .replace(/<[^>]+>/g, '').trim();
+      if (text) lines.push(text);
+    }
+
+    if (!lines.length) return { ok: false, error: 'Transcript was empty after parsing.' };
+
+    // Join lines into paragraphs (group every ~8 lines)
+    const paragraphs = [];
+    for (let i = 0; i < lines.length; i += 8) {
+      paragraphs.push(lines.slice(i, i + 8).join(' '));
+    }
+    const content = paragraphs.join('\n\n');
+    const langLabel = preferred.name?.simpleText || preferred.languageCode || 'unknown';
+
+    return { ok: true, title, content, videoId, language: langLabel, lineCount: lines.length };
+  } catch(err) {
+    return { ok: false, error: `Failed to fetch transcript: ${err.message}` };
+  }
+});
+
+// ── AI source summary ──────────────────────────────────────────────────────
+ipcMain.handle('generate-source-summary', async (e, { content, apiKey, provider, ollamaHost, ollamaModel }) => {
+  const snippet = content.slice(0, 3000);
+  const prompt = `Summarize this source in exactly one sentence (max 20 words). Be specific about the main topic or argument. No preamble.\n\n${snippet}`;
+  try {
+    if (provider === 'ollama') {
+      const host = ollamaHost || 'http://localhost:11434';
+      const model = ollamaModel || 'llama3';
+      const resp = await new Promise((resolve, reject) => {
+        const https = require('http');
+        const body = JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], stream: false });
+        const u = new URL(`${host}/v1/chat/completions`);
+        const req = https.request({ hostname: u.hostname, port: u.port || 11434, path: u.pathname, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } }, res => {
+          let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d));
+        });
+        req.on('error', reject); req.write(body); req.end();
+      });
+      const data = JSON.parse(resp);
+      return { ok: true, summary: data.choices?.[0]?.message?.content?.trim() || '' };
+    } else {
+      const https = require('https');
+      const body = JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 100, messages: [{ role: 'user', content: prompt }] });
+      const resp = await new Promise((resolve, reject) => {
+        const req = https.request({ hostname: 'api.anthropic.com', path: '/v1/messages', method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'Content-Length': Buffer.byteLength(body) } }, res => {
+          let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d));
+        });
+        req.on('error', reject); req.write(body); req.end();
+      });
+      const data = JSON.parse(resp);
+      if (data.error) return { ok: false, error: data.error.message };
+      return { ok: true, summary: data.content?.map(b => b.text || '').join('').trim() || '' };
+    }
+  } catch(err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+// ── Export chat as DOCX ────────────────────────────────────────────────────
+ipcMain.handle('export-chat-docx', async (e, { filePath, projectName, history }) => {
+  try {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
+    const children = [
+      new Paragraph({ text: `${projectName} — Chat Export`, heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ text: `Exported ${new Date().toLocaleString()}`, children: [new TextRun({ text: `Exported ${new Date().toLocaleString()}`, italics: true, color: '666666' })] }),
+      new Paragraph({ text: '' }),
+    ];
+    for (const m of history) {
+      const speaker = m.role === 'user' ? 'You' : 'RAG Research Workbook';
+      children.push(new Paragraph({ children: [new TextRun({ text: `${speaker}:`, bold: true })] }));
+      // Split content into paragraphs
+      const paras = m.content.split('\n\n').filter(p => p.trim());
+      for (const para of paras) {
+        children.push(new Paragraph({ text: para.replace(/\*\*(.*?)\*\*/g, '$1') }));
+      }
+      children.push(new Paragraph({ text: '' }));
+    }
+    const doc = new Document({ sections: [{ properties: {}, children }] });
+    const buffer = await Packer.toBuffer(doc);
+    ensureDir(filePath);
+    fs.writeFileSync(filePath, buffer);
+    return { ok: true };
+  } catch(err) {
+    return { ok: false, error: err.message };
+  }
+});
+
+// ── Export chat as PDF ─────────────────────────────────────────────────────
+ipcMain.handle('export-chat-pdf', async (e, { filePath, projectName, history }) => {
+  try {
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    const done = new Promise(resolve => doc.on('end', resolve));
+
+    doc.fontSize(20).font('Helvetica-Bold').text(`${projectName} — Chat Export`, { align: 'left' });
+    doc.fontSize(10).font('Helvetica-Oblique').fillColor('#666666').text(`Exported ${new Date().toLocaleString()}`);
+    doc.moveDown(1);
+
+    for (const m of history) {
+      const speaker = m.role === 'user' ? 'You' : 'RAG Research Workbook';
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#000000').text(`${speaker}:`);
+      const clean = m.content.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1');
+      doc.fontSize(11).font('Helvetica').fillColor('#333333').text(clean, { paragraphGap: 4 });
+      doc.moveDown(0.5);
+    }
+
+    doc.end();
+    await done;
+    ensureDir(filePath);
+    fs.writeFileSync(filePath, Buffer.concat(chunks));
+    return { ok: true };
+  } catch(err) {
+    return { ok: false, error: err.message };
+  }
+});
+
 // ── Native URL fetch ───────────────────────────────────────────────────────
 ipcMain.handle('fetch-url-native', async (e, url) => {
   try {

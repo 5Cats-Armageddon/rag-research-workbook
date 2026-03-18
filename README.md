@@ -1,4 +1,4 @@
-# RAG Research Workbook v1.2.6
+# RAG Research Workbook v2.0.0
 
 A research assistant for macOS, Windows, and browser. Organize your sources into projects, chat with an AI that answers strictly from your sources, and generate podcasts — all with optional cloud sync.
 
@@ -28,7 +28,7 @@ A research assistant for macOS, Windows, and browser. Organize your sources into
 3. Drag **RAG Research Workbook** into your **Applications** folder
 4. Open it from Applications or Launchpad
 
-> **Note:** Starting with v1.2.4, the app is properly signed and notarized by Apple — it should open without any warnings. If you're on an older version and see a warning, right-click the app → **Open** → **Open anyway**.
+> **Note:** Starting with v2.0.0, the app is properly signed and notarized by Apple — it should open without any warnings. Starting with v2.0.0, the DMG is a universal binary that works on both Apple Silicon (M1/M2/M3/M4) and Intel Macs.
 
 ### Windows
 
@@ -185,7 +185,7 @@ The browser version at https://5cats-armageddon.github.io/rag-research-workbook/
 ## Troubleshooting
 
 **The app won't open on macOS ("unidentified developer" or "app is damaged")**
-Download v1.2.4 or later — these versions are properly signed and notarized and open without warnings. If you need to run an older version, open Terminal and run:
+Download v2.0.0 or later — these versions are properly signed and notarized and open without warnings. If you need to run an older version, open Terminal and run:
 ```
 xattr -cr "/Applications/RAG Research Workbook.app"
 ```
@@ -216,3 +216,28 @@ The browser version uses localStorage which is tied to your specific browser on 
 ## For developers
 
 See [DEVELOPER.md](DEVELOPER.md) for instructions on building from source, contributing, setting up GitHub Actions, and release workflow.
+
+---
+
+## What's new in v2.0
+
+### Chat
+- **Multiple threads per project** — new projects support multiple named chat threads within each project, each with its own independent history. Double-click a thread tab to rename it.
+- **Inline citations** — every AI response cites the source name inline using [Source Name] and shows a "Sources cited" list at the bottom of each response. The podcast transcript also includes citations.
+- **Edit and resend** — click any of your sent messages to edit it and resend. The conversation is replayed from that point.
+- **Send to Podcast** — ⌘⇧P sends the current thread to the Podcast tab.
+- **Export as PDF or DOCX** — in addition to Markdown, chat history can now be exported as a Word document or PDF.
+- **Auto-save confirmation** — a brief "✓ Saved" indicator appears in the title bar after every save.
+
+### Sources
+- **YouTube transcript import** — paste any YouTube URL into the new YouTube tab to import the full captions/transcript as a source. Works on any video with captions enabled. Free, no API key required.
+- **AI source summaries** — when you add a source, the AI generates a one-sentence summary that appears in the sidebar preview. Falls back gracefully if no AI provider is configured.
+- **Word count** — each source shows its word count in the sidebar.
+- **Source tagging** — add tags to any source when you add it. Filter the sidebar by tag using the filter row that appears when tags exist.
+- **Drag to reorder** — drag sources up and down in the sidebar to change their order.
+- **Bulk select** — hover over sources to reveal a checkbox. Select multiple sources to bulk enable, disable, or delete them.
+- **Search sources** — a search bar at the top of the sidebar filters sources by name or content in real time.
+
+### General
+- **Font size control** — Settings → Appearance now includes Small, Medium, and Large text size options.
+- **Onboarding walkthrough** — first-time users see a brief guided tour of the app's main features.

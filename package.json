@@ -1,6 +1,6 @@
 {
   "name": "rag-research-workbook",
-  "version": "1.2.6",
+  "version": "2.0.0",
   "description": "RAG Research Workbook — AI-powered research assistant",
   "main": "src/main.js",
   "scripts": {
@@ -52,9 +52,11 @@
     "electron-builder": "^24.0.0"
   },
   "dependencies": {
+    "docx": "^8.5.0",
     "mammoth": "^1.7.0",
     "officeparser": "^4.1.0",
     "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.15.0",
     "xlsx": "^0.18.5"
   }
 }
