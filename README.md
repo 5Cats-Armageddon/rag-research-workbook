@@ -118,6 +118,8 @@ The **Podcast tab** turns your sources into a listenable audio podcast.
 5. Review and edit the script if needed
 6. Click **Generate audio**
 
+You can also send the current chat thread directly to the Podcast tab using **⌘⇧P** (Mac) / **Ctrl+Shift+P** (Windows), or by clicking the 🎙️ button in the chat header.
+
 **Audio options:**
 - **ElevenLabs** (recommended) — high-quality AI voices, free tier available at https://elevenlabs.io. Add your API key in Settings → Podcast. Outputs MP3.
 - **Built-in TTS** — free fallback with no setup required. Uses your system's built-in voice. Outputs AIFF (Mac) or WAV (Windows).
@@ -168,6 +170,7 @@ With **Auto-sync** enabled, your data is saved automatically on every change. Yo
 | Sync now | ⌘S | Ctrl+S |
 | Settings | ⌘, | Ctrl+, |
 | Export chat | ⌘⇧E | Ctrl+Shift+E |
+| Send to Podcast | ⌘⇧P | Ctrl+Shift+P |
 | Toggle dark mode | ⌘⇧D | Ctrl+Shift+D |
 | Send message | ↵ | Enter |
 | New line | ⇧↵ | Shift+Enter |
